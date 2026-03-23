@@ -3,321 +3,1148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>기금사업비 예산 산정 시스템</title>
+<title>기금사업비 예산 산정 시스템 v3</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f8f9fb;--surface:#ffffff;--border:#e2e5ea;--border2:#c8cdd6;
+  --bg:#f8f9fb;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;
   --text:#1a1d23;--text2:#5a606b;--text3:#9aa0aa;
-  --blue:#2563eb;--blue-bg:#eff4ff;--blue-border:#bfcffd;
-  --green:#16a34a;--green-bg:#f0fdf4;--green-border:#86efac;
-  --amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fcd34d;
-  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fca5a5;
-  --radius:8px;--radius-lg:12px;
+  --blue:#2563eb;--blue-bg:#eff4ff;--blue-bd:#bfcffd;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#86efac;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fcd34d;
+  --red:#dc2626;--red-bg:#fef2f2;--red-bd:#fca5a5;
+  --purple:#7c3aed;--purple-bg:#f5f3ff;--purple-bd:#c4b5fd;
+  --r:8px;--rl:12px;
 }
-body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
-.header{background:var(--text);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-.header-logo{font-size:13px;font-weight:700;letter-spacing:.08em;opacity:.9}
-.header-title{font-size:15px;font-weight:600}
-.header-sub{font-size:12px;color:rgba(255,255,255,.5);margin-left:auto}
-.step-nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:53px;z-index:99}
-.step-btn{padding:12px 16px;font-size:12px;font-weight:600;color:var(--text3);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.step-btn:hover{color:var(--text2)}
+body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.header{background:var(--text);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.h-logo{font-size:12px;font-weight:700;letter-spacing:.1em;opacity:.7}
+.h-title{font-size:15px;font-weight:600}
+.h-badge{font-size:10px;padding:2px 8px;background:var(--blue);border-radius:20px;margin-left:6px}
+.h-sub{font-size:11px;color:rgba(255,255,255,.45);margin-left:auto}
+.step-nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:49px;z-index:99;overflow-x:auto}
+.step-btn{padding:11px 14px;font-size:11px;font-weight:600;color:var(--text3);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
 .step-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
 .step-btn.done{color:var(--green)}
-.main{max-width:960px;margin:0 auto;padding:24px}
+.main{max-width:980px;margin:0 auto;padding:24px}
 .panel{display:none}.panel.active{display:block}
-.section-title{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:10px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
-.card-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.slabel{font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.field{display:flex;flex-direction:column;gap:5px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:11px;font-weight:600;color:var(--text2)}
-.field input,.field select{font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:var(--radius);background:#fff;color:var(--text);width:100%;transition:border .15s}
+.field input,.field select{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:#fff;color:var(--text);width:100%}
 .field input:focus,.field select:focus{outline:none;border-color:var(--blue)}
-.sc{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;text-align:center}
-.sc .lbl{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500}
-.sc .val{font-size:17px;font-weight:700;color:var(--text)}
+.sc{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;text-align:center}
+.sc .lbl{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500}
+.sc .val{font-size:15px;font-weight:700}
 .sc .sub{font-size:10px;color:var(--text3);margin-top:2px}
-.sc.blue{background:var(--blue-bg);border-color:var(--blue-border)}.sc.blue .val{color:var(--blue)}
-.sc.green{background:var(--green-bg);border-color:var(--green-border)}.sc.green .val{color:var(--green)}
-.sc.amber{background:var(--amber-bg);border-color:var(--amber-border)}.sc.amber .val{color:var(--amber)}
-.sc.red{background:var(--red-bg);border-color:var(--red-border)}.sc.red .val{color:var(--red)}
-.phdr{display:grid;grid-template-columns:1.5fr 95px 62px 62px 58px 58px 54px 26px;gap:5px;padding:0 10px;margin-bottom:4px}
+.sc.blue{background:var(--blue-bg);border-color:var(--blue-bd)}.sc.blue .val{color:var(--blue)}
+.sc.green{background:var(--green-bg);border-color:var(--green-bd)}.sc.green .val{color:var(--green)}
+.sc.amber{background:var(--amber-bg);border-color:var(--amber-bd)}.sc.amber .val{color:var(--amber)}
+.sc.red{background:var(--red-bg);border-color:var(--red-bd)}.sc.red .val{color:var(--red)}
+.sc.purple{background:var(--purple-bg);border-color:var(--purple-bd)}.sc.purple .val{color:var(--purple)}
+/* 인력 테이블 */
+.phdr,.prow{display:grid;gap:4px;align-items:center}
+.phdr{grid-template-columns:1.4fr 85px 58px 58px 56px 56px 50px 22px;padding:0 8px;margin-bottom:3px}
+.prow{grid-template-columns:1.4fr 85px 58px 58px 56px 56px 50px 22px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:6px 8px;margin-bottom:4px}
 .phdr span{font-size:10px;font-weight:600;color:var(--text3);text-align:center}
 .phdr span:first-child{text-align:left}
-.prow{display:grid;grid-template-columns:1.5fr 95px 62px 62px 58px 58px 54px 26px;gap:5px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:5px}
-.prow input,.prow select{font-size:12px;padding:4px 6px;border:1px solid var(--border2);border-radius:5px;background:#fff;color:var(--text);width:100%}
-.del-btn{width:24px;height:24px;border:1px solid var(--border2);border-radius:5px;background:#fff;color:var(--text3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.del-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
-.add-btn{font-size:12px;font-weight:600;padding:7px 14px;border:1px dashed var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;margin-top:8px;width:100%;text-align:center}
-.add-btn:hover{background:var(--bg);border-color:var(--blue);color:var(--blue)}
-.note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.7;padding:10px;background:var(--bg);border-radius:var(--radius)}
-.alloc-row{display:grid;grid-template-columns:86px 1fr 46px 100px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.prow input,.prow select{font-size:12px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%}
+.del-btn{width:22px;height:22px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.del-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-bd)}
+.add-btn{font-size:12px;font-weight:600;padding:6px 14px;border:1px dashed var(--border2);border-radius:var(--r);background:transparent;color:var(--text2);cursor:pointer;margin-top:6px;width:100%;text-align:center}
+.add-btn:hover{border-color:var(--blue);color:var(--blue)}
+.note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.7;padding:9px 11px;background:var(--bg);border-radius:var(--r)}
+/* 슬라이더 */
+.alloc-row{display:grid;grid-template-columns:86px 1fr 46px 95px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
 .alloc-row:last-child{border-bottom:none}
-.alloc-name{font-size:13px;font-weight:600}
-.alloc-pct{font-size:12px;color:var(--text3)}
 input[type=range]{width:100%;accent-color:var(--blue)}
-.hint-box{font-size:11px;color:var(--text2);background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 12px;margin-top:10px;line-height:1.7}
-.pb-wrap{height:5px;background:var(--border);border-radius:3px;margin-bottom:10px;overflow:hidden}
+.hint-box{font-size:11px;color:var(--text2);background:var(--amber-bg);border:1px solid var(--amber-bd);border-radius:var(--r);padding:9px 11px;margin-top:10px;line-height:1.7}
+/* 항목 선택 */
+.pb-wrap{height:4px;background:var(--border);border-radius:3px;margin-bottom:8px;overflow:hidden}
 .pb{height:100%;border-radius:3px;transition:width .2s;background:var(--blue)}
 .pb.ok{background:var(--green)}.pb.over{background:var(--red)}
-.item-row{display:grid;grid-template-columns:22px 1fr 58px 105px;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;cursor:pointer;transition:all .1s}
+.item-row{display:grid;grid-template-columns:20px 1fr 56px 100px;gap:7px;align-items:center;padding:7px 9px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:3px;cursor:pointer;transition:all .1s}
 .item-row:hover{border-color:var(--border2)}
-.item-row.on{background:var(--blue-bg);border-color:var(--blue-border)}
-.item-row.absorb{background:var(--amber-bg);border-color:var(--amber-border)}
-.iname{font-size:12px;font-weight:600;color:var(--text)}
+.item-row.on{background:var(--blue-bg);border-color:var(--blue-bd)}
+.item-row.absorb{background:var(--amber-bg);border-color:var(--amber-bd)}
+.item-row.new-item{border-left:3px solid var(--purple)}
+.iname{font-size:12px;font-weight:600}
 .idesc{font-size:10px;color:var(--text3);margin-top:1px}
-.iamt{font-size:13px;font-weight:700;text-align:right;color:var(--text)}
+.iamt{font-size:13px;font-weight:700;text-align:right}
 .item-row.on .iamt{color:var(--blue)}
 .item-row.absorb .iamt{color:var(--amber)}
-.qinput{font-size:12px;padding:3px 6px;width:48px;border:1px solid var(--border2);border-radius:5px;background:#fff;color:var(--text);text-align:center}
-.bimok-sect{margin-bottom:18px}
-.bimok-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.bimok-name{font-size:13px;font-weight:700}
-.bimok-meta{font-size:12px;color:var(--text2)}
-.tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:4px}
+.qinput{font-size:12px;padding:2px 5px;width:46px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);text-align:center}
+.bimok-sect{margin-bottom:16px}
+.bimok-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+/* 태그 */
+.tag{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:3px}
 .tag.auto{background:var(--green-bg);color:var(--green)}
 .tag.absorb{background:var(--amber-bg);color:var(--amber)}
 .tag.ex{background:var(--green-bg);color:var(--green)}
-.tag.new{background:var(--blue-bg);color:var(--blue)}
+.tag.new{background:var(--purple-bg);color:var(--purple)}
 .tag.cash{background:var(--blue-bg);color:var(--blue)}
 .tag.goods{background:var(--green-bg);color:var(--green)}
-.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap}
-.btn{font-size:13px;font-weight:600;padding:9px 20px;border-radius:var(--radius);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.tag.warn{background:var(--amber-bg);color:var(--amber)}
+.tag.newjob{background:var(--purple-bg);color:var(--purple)}
+/* 규정 체크 */
+.rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.rule-item{border-radius:var(--r);padding:10px 12px;border:1px solid}
+.rule-item.ok{background:var(--green-bg);border-color:var(--green-bd)}
+.rule-item.warn{background:var(--amber-bg);border-color:var(--amber-bd)}
+.rule-item.err{background:var(--red-bg);border-color:var(--red-bd)}
+.rule-item .r-title{font-size:11px;font-weight:600;margin-bottom:3px}
+.rule-item.ok .r-title{color:var(--green)}
+.rule-item.warn .r-title{color:var(--amber)}
+.rule-item.err .r-title{color:var(--red)}
+.rule-item .r-val{font-size:13px;font-weight:700}
+.rule-item .r-sub{font-size:10px;margin-top:1px;opacity:.8}
+/* 버튼 */
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:8px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+.btn{font-size:13px;font-weight:600;padding:8px 16px;border-radius:var(--r);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .btn-outline{border:1px solid var(--border2);background:#fff;color:var(--text2)}
 .btn-outline:hover{border-color:var(--text2)}
 .btn-primary{border:none;background:var(--blue);color:#fff}
 .btn-primary:hover{background:#1d4ed8}
-.btn-success{border:1px solid var(--green-border);background:var(--green-bg);color:var(--green)}
-.btn-success:hover{background:#dcfce7}
-.btn-excel{border:1px solid #1d6f42;background:#1d6f42;color:#fff}
+.btn-excel{border:none;background:#1d6f42;color:#fff}
 .btn-excel:hover{background:#155e36}
 .btn-print{border:1px solid var(--border2);background:#fff;color:var(--text2)}
-.btn-print:hover{background:var(--bg)}
-.ftbl{width:100%;border-collapse:collapse;font-size:12px}
-.ftbl th{font-size:11px;font-weight:600;color:var(--text2);padding:7px 8px;border-bottom:2px solid var(--border2);text-align:right;background:var(--bg)}
-.ftbl th:first-child,.ftbl th:nth-child(2){text-align:left}
-.ftbl td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;vertical-align:top}
-.ftbl td:first-child,.ftbl td:nth-child(2){text-align:left}
-.ftbl tr.brow td{background:var(--bg);font-weight:600;font-size:12px}
-.ftbl tr.trow td{font-weight:700;background:var(--text);color:#fff}
-.tab-row{display:flex;gap:6px;margin-bottom:12px}
-.tab{font-size:12px;font-weight:600;padding:5px 16px;border:1px solid var(--border2);border-radius:20px;background:#fff;color:var(--text2);cursor:pointer}
-.tab.on{background:var(--text);color:#fff;border-color:var(--text)}
-.alert{border-radius:var(--radius);padding:11px 14px;margin-bottom:14px;font-size:12px;font-weight:500;border:1px solid}
-.alert.ok{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.alert.warn{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
 .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+/* 최종 테이블 */
+.ftbl{width:100%;border-collapse:collapse;font-size:12px}
+.ftbl th{font-size:11px;font-weight:600;color:var(--text2);padding:6px 7px;border-bottom:2px solid var(--border2);text-align:right;background:var(--bg)}
+.ftbl th:first-child,.ftbl th:nth-child(2){text-align:left}
+.ftbl td{padding:6px 7px;border-bottom:1px solid var(--border);text-align:right;vertical-align:top}
+.ftbl td:first-child,.ftbl td:nth-child(2){text-align:left}
+.ftbl tr.brow td{background:var(--bg);font-weight:600}
+.ftbl tr.trow td{font-weight:700;background:var(--text);color:#fff}
+.tab-row{display:flex;gap:5px;margin-bottom:10px}
+.tab{font-size:12px;font-weight:600;padding:4px 14px;border:1px solid var(--border2);border-radius:20px;background:#fff;color:var(--text2);cursor:pointer}
+.tab.on{background:var(--text);color:#fff;border-color:var(--text)}
+.alert{border-radius:var(--r);padding:10px 13px;margin-bottom:12px;font-size:12px;font-weight:500;border:1px solid}
+.alert.ok{background:var(--green-bg);border-color:var(--green-bd);color:var(--green)}
+.alert.warn{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
+.alert.err{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
+/* 신규인력 카드 */
+.new-hire-card{background:var(--purple-bg);border:1px solid var(--purple-bd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
+.new-hire-card .nh-title{font-size:12px;font-weight:700;color:var(--purple);margin-bottom:8px}
 @media print{.header,.step-nav,.nav-row{display:none!important}.panel{display:block!important}.main{padding:0}}
 </style>
 </head>
 <body>
 <div class="header">
-  <span class="header-logo">BUDGET</span>
-  <span class="header-title">기금사업비 예산 산정 시스템</span>
-  <span class="header-sub">과기부훈령 제297호 기준 · AI/IT 기업용</span>
+  <span class="h-logo">BUDGET</span>
+  <span class="h-title">기금사업비 예산 산정 시스템<span class="h-badge">v3</span></span>
+  <span class="h-sub">AI 에이전트 서비스 개발 · 정부지원금 11.6억 · 중소기업 · 컨소시엄 1개</span>
 </div>
 <div class="step-nav">
   <button class="step-btn active" onclick="go(0)">① 예산 설정</button>
   <button class="step-btn" onclick="go(1)">② 인건비 산정</button>
-  <button class="step-btn" onclick="go(2)">③ 비목 가이드</button>
-  <button class="step-btn" onclick="go(3)">④ 항목 선택</button>
-  <button class="step-btn" onclick="go(4)">⑤ 최종 출력</button>
+  <button class="step-btn" onclick="go(2)">③ 신규인력 고용창출</button>
+  <button class="step-btn" onclick="go(3)">④ 비목 가이드</button>
+  <button class="step-btn" onclick="go(4)">⑤ 항목 선택</button>
+  <button class="step-btn" onclick="go(5)">⑥ 규정 검증</button>
+  <button class="step-btn" onclick="go(6)">⑦ 최종 출력</button>
+  <button class="step-btn" onclick="go(7)" style="color:var(--purple);margin-left:auto">⚙ 항목 관리</button>
 </div>
 <div class="main">
 
-<!-- ① -->
+<!-- ① 예산 설정 -->
 <div class="panel active" id="p0">
-  <div class="section-title">총 사업비 입력</div>
+  <div class="slabel">기관 정보 및 총 사업비</div>
   <div class="card">
-    <div class="g3" style="margin-bottom:14px">
-      <div class="field"><label>정부출연금 (천원)</label><input type="number" id="govAmt" value="625000" step="1000" oninput="s0()"></div>
-      <div class="field"><label>민간부담금 현금 (천원)</label><input type="number" id="privCash" value="20833" step="1000" oninput="s0()"></div>
-      <div class="field"><label>민간부담금 현물 (천원)</label><input type="number" id="privGoods" value="187500" step="1000" oninput="s0()"></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>기관 유형</label>
+        <select id="orgType" onchange="s0()">
+          <option value="sme">중소기업 (국비 75% 이내 / 민간 25% 이상)</option>
+          <option value="mid">중견기업 (국비 70% 이내 / 민간 30% 이상)</option>
+          <option value="big">대기업 (국비 50% 이내 / 민간 50% 이상)</option>
+        </select>
+      </div>
+      <div class="field"><label>컨소시엄 구성</label>
+        <select id="consortium" onchange="s0()">
+          <option value="0">단독 수행</option>
+          <option value="1" selected>참여기관 1개</option>
+          <option value="2">참여기관 2개</option>
+          <option value="3">참여기관 3개 이상</option>
+        </select>
+      </div>
     </div>
-    <div class="g4" id="s0c"></div>
+    <div class="card" style="background:var(--blue-bg);border-color:var(--blue-bd);margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px">정부지원금 (확정 금액 — 직접 입력)</div>
+      <div class="g3">
+        <div class="field"><label>1차년도 정부지원금 (천원)</label><input type="number" id="gov1" value="580000" step="1000" oninput="s0()"></div>
+        <div class="field"><label>2차년도 정부지원금 (천원)</label><input type="number" id="gov2" value="580000" step="1000" oninput="s0()"></div>
+        <div class="field"><label>총 정부지원금 (천원)</label><input type="number" id="govTotal" value="1160000" step="1000" oninput="s0()" style="font-weight:700;color:var(--blue)"></div>
+      </div>
+    </div>
+    <div id="s0budget"></div>
+    <div class="g4" id="s0cards" style="margin-top:12px"></div>
+    <p class="note" id="s0note" style="margin-top:10px"></p>
   </div>
-  <div class="section-title">사업 기간</div>
+  <div class="slabel">사업 기간</div>
   <div class="card">
     <div class="g2" style="gap:12px">
-      <div class="field"><label>시작연도</label><select id="startYear"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
-      <div class="field"><label>사업 기간</label><select id="duration"><option value="1">1년</option><option value="2" selected>2년</option><option value="3">3년</option></select></div>
+      <div class="field"><label>시작연도</label><select id="startYear"><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
       <div class="field"><label>1차년도 시작월</label><select id="startMonth"><option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4" selected>4월</option><option value="5">5월</option><option value="6">6월</option></select></div>
       <div class="field"><label>계산방식</label><select id="calcMethod"><option value="rule" selected>공고 예시 방식 (시작월 제외)</option><option value="exact">정확한 달력 개월수</option></select></div>
+      <div class="field"><label>사업 기간</label><select id="duration" onchange="s0()" disabled><option value="2" selected>2년 (고정)</option></select></div>
     </div>
-    <p class="note" id="pNote" style="margin-top:12px"></p>
+    <p class="note" id="pNote" style="margin-top:10px"></p>
   </div>
   <div class="nav-row"><span></span><button class="btn btn-primary" onclick="go(1)">다음 → 인건비 산정</button></div>
 </div>
 
-<!-- ② -->
+<!-- ② 인건비 -->
 <div class="panel" id="p1">
-  <div class="section-title">참여인력 입력</div>
+  <div class="slabel">기존인력 참여 인건비</div>
   <div class="card">
-    <div class="phdr"><span>성명 / 직위</span><span>연봉(천원)</span><span>1차 참여율</span><span>2차 참여율</span><span>구분</span><span>현금/현물</span><span>비고</span><span></span></div>
+    <div class="phdr"><span>성명/직위</span><span>연봉(천원)</span><span>1차 참여율</span><span>2차 참여율</span><span>구분</span><span>현금/현물</span><span>비고</span><span></span></div>
     <div id="pList"></div>
-    <button class="add-btn" onclick="addP()">+ 인력 추가</button>
-    <p class="note">※ 신규인력 → 현금만 가능 &nbsp;|&nbsp; 현물 → 협약일 현재 재직 기존인력만 &nbsp;|&nbsp; 1인 현물·현금 동시 불가 &nbsp;|&nbsp; 신규인력 퇴직금 편성 불가<br>※ 산정식: 연봉 ÷ 12 × 참여개월 × 참여율 (천원 미만 절사)</p>
+    <button class="add-btn" onclick="addP()">+ 기존인력 추가</button>
+    <p class="note">※ 현물 → 협약일 현재 재직 기존인력만 / 1인 현물·현금 동시불가 / 인건비 계상률 100% 초과 불가<br>※ 지원인력(회계·행정 등) 인건비는 참여인력 인건비의 20% 이내<br>※ 산정식: 연봉 ÷ 12 × 참여개월 × 참여율 (천원 미만 절사)</p>
   </div>
   <div id="laborOut"></div>
   <div class="nav-row"><button class="btn btn-outline" onclick="go(0)">← 이전</button><button class="btn btn-primary" onclick="calcLabor();go(2)">계산 후 다음 →</button></div>
 </div>
 
-<!-- ③ -->
+<!-- ③ 신규인력 고용창출 -->
 <div class="panel" id="p2">
-  <div class="card" id="p2sum"></div>
-  <div class="section-title">비목별 배분 가이드 &nbsp;<span style="font-weight:500;color:var(--amber);font-size:11px;text-transform:none">※ 참고용 — 합계가 100%가 아니어도 됩니다</span></div>
-  <div class="card"><div id="allocSl"></div><div class="hint-box" id="allocHint"></div></div>
-  <div class="nav-row"><button class="btn btn-outline" onclick="go(1)">← 이전</button><button class="btn btn-primary" onclick="runStep4()">항목 자동 선택 →</button></div>
+  <div class="alert warn">🏢 <b>고용창출 의무:</b> 본 사업은 신규 일자리 창출 계획을 사업계획서에 반드시 제안해야 합니다. 아래에 신규 채용 예정 인력을 입력해주세요.</div>
+  <div class="slabel">신규 채용 인력 (공고일 이후 채용)</div>
+  <div class="card">
+    <div class="phdr"><span>성명/직위(예정)</span><span>예정연봉(천원)</span><span>1차 참여율</span><span>2차 참여율</span><span>참여기간</span><span>현금/현물</span><span>PC구매</span><span></span></div>
+    <div id="newHireList"></div>
+    <button class="add-btn" onclick="addNH()">+ 신규인력 추가</button>
+    <p class="note">※ 신규인력 → 현금만 가능 (협약일 이후 채용이므로 현물 불가)<br>※ 신규인력 퇴직금·퇴직급여충당금 편성 불가<br>※ PC/노트북 구매 조건: <b>참여율 50% 이상 + 참여기간 6개월 이상</b>인 신규인력만 1대 가능<br>※ 범용 PC·노트북·프린터 등은 신규인력에 한해서만 구매 가능 (기존인력 불가)</p>
+  </div>
+  <div id="newHireResult"></div>
+  <div class="nav-row"><button class="btn btn-outline" onclick="go(1)">← 이전</button><button class="btn btn-primary" onclick="calcNewHire();go(3)">계산 후 다음 →</button></div>
 </div>
 
-<!-- ④ -->
+<!-- ④ 비목 가이드 -->
 <div class="panel" id="p3">
-  <div id="p3top"></div>
-  <div id="p3items"></div>
-  <div class="nav-row"><button class="btn btn-outline" onclick="go(2)">← 이전</button><button class="btn btn-primary" onclick="go(4);buildFinal()">최종 출력 →</button></div>
+  <div class="card" id="p3sum"></div>
+  <div class="slabel">비목별 배분 가이드 <span style="font-weight:400;color:var(--amber);font-size:11px;text-transform:none">※ 참고용 — 합계가 100%가 아니어도 됩니다</span></div>
+  <div class="card"><div id="allocSl"></div><div class="hint-box" id="allocHint"></div></div>
+  <div class="nav-row"><button class="btn btn-outline" onclick="go(2)">← 이전</button><button class="btn btn-primary" onclick="runStep5()">항목 자동 선택 →</button></div>
 </div>
 
-<!-- ⑤ -->
+<!-- ⑤ 항목 선택 -->
 <div class="panel" id="p4">
+  <div id="p4top"></div>
+  <div id="p4items"></div>
+  <div class="nav-row"><button class="btn btn-outline" onclick="go(3)">← 이전</button><button class="btn btn-primary" onclick="go(5);buildValidation()">규정 검증 →</button></div>
+</div>
+
+<!-- ⑥ 규정 검증 -->
+<div class="panel" id="p5">
+  <div class="slabel">규정 자동 검증 결과</div>
+  <div id="validationOut"></div>
+  <div class="nav-row"><button class="btn btn-outline" onclick="go(4)">← 수정</button><button class="btn btn-primary" onclick="go(6);buildFinal()">최종 출력 →</button></div>
+</div>
+
+<!-- ⑦ 최종 출력 -->
+<div class="panel" id="p6">
   <div id="finalOut"></div>
   <div class="nav-row">
-    <button class="btn btn-outline" onclick="go(3)">← 수정</button>
+    <button class="btn btn-outline" onclick="go(5)">← 수정</button>
     <div class="btn-group">
       <button class="btn btn-excel" onclick="downloadExcel()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         엑셀 다운로드
       </button>
-      <button class="btn btn-print" onclick="window.print()">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
-        인쇄 / PDF
-      </button>
+      <button class="btn btn-print" onclick="window.print()">🖨 인쇄 / PDF</button>
     </div>
+  </div>
+
+</div>
+
+<!-- ⚙ 항목 관리 -->
+<div class="panel" id="p7">
+  <div class="alert" style="background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple)">
+    ✏️ <b>항목 관리:</b> 세부 항목의 가격(단가)을 수정하거나 새 항목을 추가할 수 있습니다. 변경사항은 즉시 ⑤ 항목 선택에 반영됩니다.
+  </div>
+  <div class="slabel">비목 선택</div>
+  <div class="tab-row" id="mgmtTabs"></div>
+  <div id="mgmtContent"></div>
+  <div class="nav-row">
+    <button class="btn btn-outline" onclick="go(4)">← 항목 선택으로</button>
+    <button class="btn" style="background:var(--purple);color:#fff;border:none" onclick="addMgmtItem()">+ 새 항목 추가</button>
   </div>
 </div>
 
 </div>
-
 <script>
+// ── 상수 ──────────────────────────────────────────────────────────────────
 const BIMOKS=['운영비','여비','업무추진비','연구용역비','유형자산'];
-const DB={운영비:[{id:'o1',n:'사무용품·소모품',cat:'일반수용비',desc:'100천원/월',u:100,pm:true,qty:1,min:1,max:1},{id:'o2',n:'결과보고서 인쇄·제본',cat:'일반수용비',desc:'50천원×부수',u:50,pm:false,qty:20,min:5,max:200},{id:'o3',n:'홍보물·현수막 제작',cat:'일반수용비',desc:'200천원×식',u:200,pm:false,qty:2,min:1,max:20},{id:'o4',n:'AI 기술서적·전자저널',cat:'일반수용비',desc:'50천원×권',u:50,pm:false,qty:10,min:5,max:100},{id:'o5',n:'AI 전문가 자문료',cat:'일반수용비',desc:'300천원/회',u:300,pm:false,qty:10,min:2,max:100},{id:'o6',n:'설문·인터뷰 사례금',cat:'일반수용비',desc:'50천원×명',u:50,pm:false,qty:30,min:5,max:300},{id:'o7',n:'정산위탁수수료',cat:'일반수용비',desc:'사업비 규모별 표준',u:0,pm:false,qty:1,min:1,max:1,sp:'audit'},{id:'o8',n:'AI 성능시험료(공인기관)',cat:'일반수용비',desc:'4,000천원×건',u:4000,pm:false,qty:1,min:1,max:5},{id:'o9',n:'SW 라이선스 사용료',cat:'일반수용비',desc:'300천원/월',u:300,pm:true,qty:1,min:1,max:1},{id:'o10',n:'AI·LLM 교육훈련비',cat:'일반수용비',desc:'100천원×명',u:100,pm:false,qty:10,min:2,max:100},{id:'o11',n:'GPU 클라우드 서버',cat:'공공요금',desc:'3,000천원/월',u:3000,pm:true,qty:1,min:1,max:1},{id:'o12',n:'일반 클라우드 인프라',cat:'공공요금',desc:'500천원/월',u:500,pm:true,qty:1,min:1,max:1},{id:'o13',n:'통신요금',cat:'공공요금',desc:'50천원/월',u:50,pm:true,qty:1,min:1,max:1},{id:'o14',n:'특근매식비',cat:'특근매식비',desc:'9천원×인원×회(1식9천원이내)',u:9,pm:false,qty:100,min:10,max:2000},{id:'o15',n:'실증 테스트 장소 임차',cat:'임차료',desc:'3,000천원×회',u:3000,pm:false,qty:3,min:1,max:20},{id:'o16',n:'GPU 서버 단기 임차',cat:'임차료',desc:'2,000천원/월',u:2000,pm:true,qty:1,min:1,max:1},{id:'o17',n:'학습데이터셋 구매',cat:'재료비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:20},{id:'o18',n:'시제품 제작 재료비',cat:'재료비',desc:'2,000천원×건',u:2000,pm:false,qty:1,min:1,max:20},{id:'o19',n:'서버 유지관리비',cat:'시설장비유지비',desc:'2,000천원/월',u:2000,pm:true,qty:1,min:1,max:1},{id:'o20',n:'UI/UX 디자인 용역',cat:'일반용역비',desc:'25,000천원×건',u:25000,pm:false,qty:1,min:1,max:5},{id:'o21',n:'홍보 영상·콘텐츠 제작',cat:'일반용역비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:10},{id:'o22',n:'AI 솔루션 유지관리 용역',cat:'관리용역비',desc:'1,500천원/월',u:1500,pm:true,qty:1,min:1,max:1},{id:'o23',n:'IT 보안 관제 용역',cat:'관리용역비',desc:'1,000천원/월',u:1000,pm:true,qty:1,min:1,max:1}],여비:[{id:'t1',n:'협업기관·수요처 방문 출장',cat:'국내여비',desc:'200천원×5명×회',u:1000,pm:false,qty:6,min:1,max:50},{id:'t2',n:'정부부처·전담기관 방문 출장',cat:'국내여비',desc:'100천원×3명×회',u:300,pm:false,qty:10,min:1,max:100},{id:'t3',n:'국내 AI 컨퍼런스 출장',cat:'국내여비',desc:'150천원×3명×회',u:450,pm:false,qty:4,min:1,max:30},{id:'t4',n:'실증 현장 방문 출장',cat:'국내여비',desc:'150천원×4명×회',u:600,pm:false,qty:5,min:1,max:30},{id:'t5',n:'시내출장비',cat:'국내여비',desc:'30천원×10명/월',u:300,pm:true,qty:1,min:1,max:1},{id:'t6',n:'해외 AI 학회 출장',cat:'국외여비',desc:'3,000천원×2명×회',u:6000,pm:false,qty:1,min:1,max:5},{id:'t7',n:'해외 협력기관 방문 출장',cat:'국외여비',desc:'2,500천원×2명×회',u:5000,pm:false,qty:1,min:1,max:5},{id:'t8',n:'외빈 초청 항공·숙박비',cat:'국외여비',desc:'2,000천원×명',u:2000,pm:false,qty:1,min:1,max:10}],업무추진비:[{id:'b1',n:'정기 전략회의비',cat:'사업추진비',desc:'100천원×10명×회(1인5만원이내)',u:1000,pm:false,qty:6,min:1,max:50},{id:'b2',n:'협업기관 업무협의 회의비',cat:'사업추진비',desc:'100천원×5명×회',u:500,pm:false,qty:4,min:1,max:40},{id:'b3',n:'킥오프 행사비',cat:'사업추진비',desc:'50천원×80명×회',u:4000,pm:false,qty:1,min:1,max:5},{id:'b4',n:'중간보고회 행사비',cat:'사업추진비',desc:'50천원×50명×회',u:2500,pm:false,qty:1,min:1,max:5},{id:'b5',n:'성과발표회·데모데이',cat:'사업추진비',desc:'50천원×120명×회',u:6000,pm:false,qty:1,min:1,max:3},{id:'b6',n:'외빈 초청 환영 경비',cat:'사업추진비',desc:'300천원×10명×회',u:3000,pm:false,qty:1,min:1,max:5}],연구용역비:[{id:'r1',n:'LLM/AI 모델 개발 용역',cat:'일반연구비',desc:'SW대가산정 가이드',u:212200,pm:false,qty:1,min:1,max:1},{id:'r2',n:'학습데이터 구축·정제 용역',cat:'일반연구비',desc:'건당 산정',u:80000,pm:false,qty:1,min:1,max:3},{id:'r3',n:'AI 실증·성능 고도화 용역',cat:'일반연구비',desc:'건당 산정',u:60000,pm:false,qty:1,min:1,max:3},{id:'r4',n:'AI 보안성·개인정보 컨설팅',cat:'일반연구비',desc:'건당 산정',u:30000,pm:false,qty:1,min:1,max:3},{id:'r5',n:'표준화·매뉴얼 작성 용역',cat:'일반연구비',desc:'건당 산정',u:15000,pm:false,qty:1,min:1,max:3},{id:'r6',n:'기술이전·사업화 컨설팅',cat:'일반연구비',desc:'건당 산정',u:10000,pm:false,qty:1,min:1,max:3},{id:'r7',n:'AI 모델 독립 평가·검증',cat:'일반연구비',desc:'건당 산정',u:10000,pm:false,qty:1,min:1,max:3}],유형자산:[{id:'a1',n:'AI 학습용 GPU 서버(A100/H100)',cat:'자산취득비',desc:'조달청MAS, 30일내등록',u:65000,pm:false,qty:1,min:1,max:5},{id:'a2',n:'AI 개발 워크스테이션',cat:'자산취득비',desc:'8,000천원×대',u:8000,pm:false,qty:3,min:1,max:30},{id:'a3',n:'데이터 스토리지 NAS(100TB)',cat:'자산취득비',desc:'건당 산정',u:6000,pm:false,qty:1,min:1,max:5},{id:'a4',n:'네트워크 장비(스위치·방화벽)',cat:'자산취득비',desc:'건당 산정',u:5000,pm:false,qty:1,min:1,max:5},{id:'a5',n:'UPS(무정전전원장치)',cat:'자산취득비',desc:'건당 산정',u:4000,pm:false,qty:1,min:1,max:5},{id:'a6',n:'업무용 노트북(신규인력용)',cat:'자산취득비',desc:'500천원×대, 신규인력만',u:500,pm:false,qty:5,min:1,max:100},{id:'a7',n:'서버 랙·캐비닛',cat:'자산취득비',desc:'건당 산정',u:2000,pm:false,qty:1,min:1,max:5},{id:'a8',n:'엣지 AI 디바이스(실증용)',cat:'자산취득비',desc:'300천원×대',u:300,pm:false,qty:10,min:1,max:200}]};
+const ORG_RATIO={sme:{govMax:0.75,privMin:0.25,cashMin:0.10},mid:{govMax:0.70,privMin:0.30,cashMin:0.13},big:{govMax:0.50,privMin:0.50,cashMin:0.15}};
 
-function auditFee(t){if(t<50000)return 600;if(t<100000)return 800;if(t<300000)return 1000;if(t<500000)return 1500;if(t<1000000)return 1600;if(t<3000000)return 1800;return 2100;}
-let S={gov:625000,pC:20833,pG:187500,dur:2,sy:2026,sm:4,method:'rule',people:[{name:'홍길동/대표이사',sal:120000,r1:20,r2:20,type:'existing',ct:'현물',note:'기존인력'},{name:'김AI/AI팀장',sal:90000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},{name:'이개발/AI연구원',sal:72000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},{name:'박데이터/데이터엔지니어',sal:66000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},{name:'최신규/백엔드',sal:55000,r1:40,r2:40,type:'new',ct:'현금',note:'신규인력'}],labor:{years:[],totCash:0,totGoods:0,totTotal:0},alloc:{운영비:20,여비:5,업무추진비:5,연구용역비:55,유형자산:15},composed:{}};
+// AI 에이전트 서비스 개발에 특화된 항목 DB
+const DB={
+  운영비:[
+    // 일반수용비
+    {id:'o1',n:'사무용품·소모품',cat:'일반수용비',desc:'100천원/월',u:100,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o2',n:'AI 기술서적·논문·전자저널',cat:'일반수용비',desc:'50천원×권(건)',u:50,pm:false,qty:10,min:5,max:100,yr:'both'},
+    {id:'o3',n:'결과보고서 인쇄·제본',cat:'일반수용비',desc:'50천원×부수',u:50,pm:false,qty:20,min:5,max:100,yr:'both'},
+    {id:'o4',n:'사업 성과물 홍보물·현수막 제작',cat:'일반수용비',desc:'200천원×식',u:200,pm:false,qty:2,min:1,max:10,yr:'both'},
+    {id:'o5',n:'AI 전문가 자문료',cat:'일반수용비',desc:'300천원/회',u:300,pm:false,qty:10,min:2,max:50,yr:'both'},
+    {id:'o6',n:'데이터 수집·검수 사례금',cat:'일반수용비',desc:'50천원×명',u:50,pm:false,qty:50,min:10,max:500,yr:'1차'},
+    {id:'o7',n:'설문·인터뷰 사례금 (UX조사)',cat:'일반수용비',desc:'50천원×명',u:50,pm:false,qty:30,min:10,max:200,yr:'both'},
+    {id:'o8',n:'정산위탁수수료',cat:'일반수용비',desc:'사업비 규모별 표준',u:0,pm:false,qty:1,min:1,max:1,sp:'audit',yr:'both'},
+    {id:'o9',n:'AI 성능시험료 (공인기관)',cat:'일반수용비',desc:'50,000천원×건',u:50000,pm:false,qty:1,min:1,max:3,yr:'2차'},
+    {id:'o10',n:'SW 라이선스 사용료 (개발도구)',cat:'일반수용비',desc:'300천원/월',u:300,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o11',n:'AI·LLM 온라인 교육훈련비',cat:'일반수용비',desc:'100천원×명',u:100,pm:false,qty:10,min:2,max:50,yr:'both'},
+    {id:'o12',n:'원고료·번역료 (기술문서)',cat:'일반수용비',desc:'200천원×건',u:200,pm:false,qty:5,min:1,max:20,yr:'both'},
+    {id:'o26',n:'GitHub/GitLab Enterprise 구독',cat:'일반수용비',desc:'15천원×계정/월',u:15,pm:true,qty:10,min:3,max:30,yr:'both'},
+    {id:'o27',n:'Figma / Notion / Confluence 팀 구독',cat:'일반수용비',desc:'20천원×계정/월',u:20,pm:true,qty:8,min:2,max:30,yr:'both'},
+    {id:'o28',n:'Slack·협업툴 Business+ 구독',cat:'일반수용비',desc:'15천원×계정/월',u:15,pm:true,qty:10,min:3,max:30,yr:'both'},
+    {id:'o29',n:'특허·지식재산 출원 대리비',cat:'일반수용비',desc:'500천원×건',u:500,pm:false,qty:3,min:1,max:10,yr:'both'},
+    {id:'o30',n:'SW 품질인증·GS 인증 준비 비용',cat:'일반수용비',desc:'2,000천원×건',u:2000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+    {id:'o31',n:'포스터·전시 인쇄물 제작',cat:'일반수용비',desc:'100천원×식',u:100,pm:false,qty:5,min:1,max:20,yr:'both'},
+    {id:'o32',n:'사업 로고·CI 디자인 제작',cat:'일반수용비',desc:'500천원×건',u:500,pm:false,qty:1,min:1,max:1,yr:'1차'},
+    {id:'o33',n:'오픈소스 기여 스폰서십·컨퍼런스 참가비',cat:'일반수용비',desc:'200천원×건',u:200,pm:false,qty:4,min:1,max:10,yr:'both'},
+    // 공공요금
+    {id:'o13',n:'GPU 클라우드 서버 이용료',cat:'공공요금',desc:'3,000천원/월',u:3000,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o14',n:'LLM API 호출 비용 (OpenAI 등)',cat:'공공요금',desc:'500천원/월',u:500,pm:true,qty:1,min:1,max:1,yr:'1차'},
+    {id:'o15',n:'데이터 스토리지 클라우드 이용료',cat:'공공요금',desc:'200천원/월',u:200,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o16',n:'통신요금',cat:'공공요금',desc:'50천원/월',u:50,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o34',n:'AWS / GCP / Azure 인프라 이용료',cat:'공공요금',desc:'1,000천원/월',u:1000,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o35',n:'CDN·네트워크 트래픽 비용',cat:'공공요금',desc:'200천원/월',u:200,pm:true,qty:1,min:1,max:1,yr:'2차'},
+    {id:'o36',n:'보안 모니터링 서비스 이용료',cat:'공공요금',desc:'300천원/월',u:300,pm:true,qty:1,min:1,max:1,yr:'both'},
+    // 특근매식비
+    {id:'o17',n:'특근매식비',cat:'특근매식비',desc:'9천원×인원×회(1식 9,000원 이내)',u:9,pm:false,qty:200,min:10,max:3000,yr:'both'},
+    // 임차료
+    {id:'o18',n:'실증 테스트베드 장소 임차 (2차)',cat:'임차료',desc:'3,000천원×회',u:3000,pm:false,qty:3,min:1,max:10,yr:'2차'},
+    {id:'o19',n:'회의·세미나실 임차',cat:'임차료',desc:'500천원×회',u:500,pm:false,qty:4,min:1,max:20,yr:'both'},
+    {id:'o37',n:'전시·데모 부스 임차',cat:'임차료',desc:'1,500천원×회',u:1500,pm:false,qty:2,min:1,max:5,yr:'both'},
+    {id:'o38',n:'단기 추가 사무공간 임차',cat:'임차료',desc:'500천원/월',u:500,pm:true,qty:1,min:1,max:1,yr:'1차'},
+    // 재료비
+    {id:'o20',n:'학습 원시데이터 구매·수집비',cat:'재료비',desc:'5,000천원×건',u:5000,pm:false,qty:2,min:1,max:10,yr:'1차'},
+    {id:'o21',n:'데이터 라벨링·가공 재료비',cat:'재료비',desc:'3,000천원×건',u:3000,pm:false,qty:2,min:1,max:10,yr:'1차'},
+    {id:'o39',n:'크라우드소싱 데이터 수집 플랫폼 이용료',cat:'재료비',desc:'1,000천원×건',u:1000,pm:false,qty:3,min:1,max:10,yr:'1차'},
+    {id:'o40',n:'공공데이터 유료 구매',cat:'재료비',desc:'500천원×건',u:500,pm:false,qty:5,min:1,max:20,yr:'both'},
+    {id:'o41',n:'산업별 도메인 데이터셋 구매',cat:'재료비',desc:'2,000천원×건',u:2000,pm:false,qty:2,min:1,max:5,yr:'1차'},
+    // 시설장비유지비
+    {id:'o22',n:'개발 서버 유지관리비',cat:'시설장비유지비',desc:'2,000천원/월',u:2000,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o42',n:'장비 소모품 교체·유지보수',cat:'시설장비유지비',desc:'200천원/월',u:200,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'o43',n:'SW 유지보수·업그레이드 계약',cat:'시설장비유지비',desc:'500천원/월',u:500,pm:true,qty:1,min:1,max:1,yr:'both'},
+    // 일반용역비
+    {id:'o23',n:'AI 서비스 UI/UX 디자인 용역',cat:'일반용역비',desc:'25,000천원×건',u:25000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    {id:'o24',n:'사업 성과 홍보 영상·콘텐츠 제작',cat:'일반용역비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:3,yr:'both'},
+    {id:'o25',n:'서비스 실증 운영 대행 용역',cat:'일반용역비',desc:'10,000천원×건',u:10000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+    {id:'o44',n:'서비스 접근성·웹표준 검수 용역',cat:'일반용역비',desc:'3,000천원×건',u:3000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+    {id:'o45',n:'취약점 분석·모의해킹 보안 용역',cat:'일반용역비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'o46',n:'AI 서비스 사용성 테스트(UT) 용역',cat:'일반용역비',desc:'3,000천원×건',u:3000,pm:false,qty:2,min:1,max:4,yr:'both'},
+    {id:'o47',n:'시스템 통합(SI) 연동 개발 용역',cat:'일반용역비',desc:'10,000천원×건',u:10000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+  ],
+  여비:[
+    {id:'t1',n:'수요기업·협업기관 방문 출장',cat:'국내여비',desc:'200천원×5명×회',u:1000,pm:false,qty:6,min:1,max:30,yr:'both'},
+    {id:'t2',n:'정부부처·전담기관(NIPA) 방문 출장',cat:'국내여비',desc:'100천원×3명×회',u:300,pm:false,qty:8,min:1,max:30,yr:'both'},
+    {id:'t3',n:'국내 AI 컨퍼런스·포럼 참석 출장',cat:'국내여비',desc:'150천원×3명×회',u:450,pm:false,qty:4,min:1,max:20,yr:'both'},
+    {id:'t4',n:'실증 현장 방문 출장 (테스트베드)',cat:'국내여비',desc:'150천원×4명×회',u:600,pm:false,qty:5,min:1,max:20,yr:'2차'},
+    {id:'t5',n:'시내출장비',cat:'국내여비',desc:'30천원×10명/월',u:300,pm:true,qty:1,min:1,max:1,yr:'both'},
+    {id:'t8',n:'지방 수요처 발굴 출장 (1박2일)',cat:'국내여비',desc:'250천원×2명×회',u:500,pm:false,qty:4,min:1,max:15,yr:'both'},
+    {id:'t9',n:'공공기관·지자체 사업설명 출장',cat:'국내여비',desc:'150천원×3명×회',u:450,pm:false,qty:4,min:1,max:20,yr:'2차'},
+    {id:'t10',n:'투자유치·IR 미팅 출장',cat:'국내여비',desc:'100천원×2명×회',u:200,pm:false,qty:5,min:1,max:20,yr:'2차'},
+    {id:'t11',n:'현장 실증·파일럿 모니터링 출장',cat:'국내여비',desc:'200천원×3명×회',u:600,pm:false,qty:6,min:1,max:20,yr:'2차'},
+    {id:'t12',n:'팀 워크숍 (국내 1박)',cat:'국내여비',desc:'150천원×10명×회',u:1500,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'t6',n:'해외 AI 학회 출장 (NeurIPS·ICML 등)',cat:'국외여비',desc:'3,000천원×2명×회',u:6000,pm:false,qty:1,min:1,max:3,yr:'both'},
+    {id:'t7',n:'해외 벤치마킹·기술조사 출장',cat:'국외여비',desc:'2,500천원×2명×회',u:5000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'t13',n:'해외 파트너십·MOU 체결 출장',cat:'국외여비',desc:'2,500천원×2명×회',u:5000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+    {id:'t14',n:'해외 전시회·박람회 참가 출장 (CES 등)',cat:'국외여비',desc:'3,500천원×2명×회',u:7000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+  ],
+  업무추진비:[
+    {id:'b1',n:'정기 전략회의비 (1인 5만원 이내)',cat:'사업추진비',desc:'100천원×10명×회',u:1000,pm:false,qty:6,min:1,max:30,yr:'both'},
+    {id:'b2',n:'수요기업·협업기관 협의 회의비',cat:'사업추진비',desc:'100천원×5명×회',u:500,pm:false,qty:4,min:1,max:20,yr:'both'},
+    {id:'b3',n:'킥오프 행사비',cat:'사업추진비',desc:'50천원×80명×회',u:4000,pm:false,qty:1,min:1,max:1,yr:'1차'},
+    {id:'b4',n:'중간보고회·성과공유회 행사비',cat:'사업추진비',desc:'50천원×60명×회',u:3000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'b5',n:'최종 성과발표회·데모데이',cat:'사업추진비',desc:'50천원×120명×회',u:6000,pm:false,qty:1,min:1,max:1,yr:'2차'},
+    {id:'b6',n:'자문위원회 간담회',cat:'사업추진비',desc:'50천원×15명×회',u:750,pm:false,qty:2,min:1,max:6,yr:'both'},
+    {id:'b7',n:'수요기업 간담회·사용자 FGI',cat:'사업추진비',desc:'50천원×20명×회',u:1000,pm:false,qty:3,min:1,max:10,yr:'both'},
+    {id:'b8',n:'팀 내부 스프린트 회고·OKR 회의비',cat:'사업추진비',desc:'30천원×10명×회',u:300,pm:false,qty:6,min:1,max:20,yr:'both'},
+    {id:'b9',n:'투자자·언론 대상 IR 행사비',cat:'사업추진비',desc:'50천원×50명×회',u:2500,pm:false,qty:1,min:1,max:2,yr:'2차'},
+  ],
+  연구용역비:[
+    // 대형 개발 용역 (기존)
+    {id:'r1',n:'학습데이터 구축·정제·라벨링 용역',cat:'일반연구비',desc:'SW대가산정 가이드',u:80000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    {id:'r2',n:'도메인 특화 AI 모델 개발 용역',cat:'일반연구비',desc:'SW대가산정 가이드',u:150000,pm:false,qty:1,min:1,max:1,yr:'1차'},
+    {id:'r3',n:'AI 에이전트 파인튜닝·고도화 용역',cat:'일반연구비',desc:'SW대가산정 가이드',u:80000,pm:false,qty:1,min:1,max:1,yr:'2차'},
+    {id:'r4',n:'파일럿 서비스 개발 용역 (1차)',cat:'일반연구비',desc:'SW대가산정 가이드',u:60000,pm:false,qty:1,min:1,max:1,yr:'1차'},
+    {id:'r5',n:'서비스 실증·고도화 개선 용역 (2차)',cat:'일반연구비',desc:'SW대가산정 가이드',u:60000,pm:false,qty:1,min:1,max:1,yr:'2차'},
+    // 중형 컨설팅·평가
+    {id:'r6',n:'AI 보안성·개인정보 영향평가 컨설팅',cat:'일반연구비',desc:'건당 산정',u:20000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'r7',n:'서비스 표준화·API 문서 작성 용역',cat:'일반연구비',desc:'건당 산정',u:15000,pm:false,qty:1,min:1,max:2,yr:'2차'},
+    {id:'r8',n:'기술이전·사업화 전략 컨설팅',cat:'일반연구비',desc:'건당 산정',u:10000,pm:false,qty:1,min:1,max:1,yr:'2차'},
+    {id:'r9',n:'AI 윤리·편향성 검토 컨설팅',cat:'일반연구비',desc:'건당 산정',u:8000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'r10',n:'규제샌드박스·법령 해석 법률 자문',cat:'일반연구비',desc:'건당 산정',u:5000,pm:false,qty:2,min:1,max:5,yr:'both'},
+    // 소형·단기 자문
+    {id:'r11',n:'도메인 전문가 기술 자문 (1회)',cat:'일반연구비',desc:'500천원×회',u:500,pm:false,qty:10,min:2,max:30,yr:'both'},
+    {id:'r12',n:'산학협력 공동연구 연구비',cat:'일반연구비',desc:'건당 산정',u:15000,pm:false,qty:1,min:1,max:2,yr:'both'},
+    {id:'r13',n:'AI 서비스 성능·품질 평가 용역',cat:'일반연구비',desc:'3,000천원×건',u:3000,pm:false,qty:2,min:1,max:4,yr:'2차'},
+    {id:'r14',n:'사업 타당성·경제성 분석 컨설팅',cat:'일반연구비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:1,yr:'1차'},
+    {id:'r15',n:'수요조사·시장분석 연구 용역',cat:'일반연구비',desc:'5,000천원×건',u:5000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    {id:'r16',n:'국제 표준화(ISO·IEC) 대응 컨설팅',cat:'일반연구비',desc:'8,000천원×건',u:8000,pm:false,qty:1,min:1,max:1,yr:'2차'},
+  ],
+  유형자산:[
+    {id:'a1',n:'AI 학습용 GPU 서버 (A100/H100)',cat:'자산취득비',desc:'조달청MAS, 취득후30일내등록 필수',u:65000,pm:false,qty:1,min:1,max:3,yr:'1차',needPlan:true},
+    {id:'a2',n:'AI 개발 고성능 워크스테이션',cat:'자산취득비',desc:'8,000천원×대',u:8000,pm:false,qty:3,min:1,max:10,yr:'1차'},
+    {id:'a3',n:'데이터 스토리지 NAS (100TB)',cat:'자산취득비',desc:'건당 산정',u:6000,pm:false,qty:1,min:1,max:3,yr:'1차',needPlan:true},
+    {id:'a4',n:'네트워크 장비 (스위치·방화벽)',cat:'자산취득비',desc:'건당 산정',u:5000,pm:false,qty:1,min:1,max:3,yr:'1차',needPlan:true},
+    {id:'a5',n:'실증용 엣지 AI 디바이스',cat:'자산취득비',desc:'300천원×대',u:300,pm:false,qty:10,min:1,max:100,yr:'2차'},
+    {id:'a6',n:'서버 랙·캐비닛·UPS',cat:'자산취득비',desc:'건당 산정',u:5000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    {id:'a7',n:'4K 대형 모니터 (개발·디자인용)',cat:'자산취득비',desc:'800천원×대',u:800,pm:false,qty:5,min:1,max:15,yr:'1차'},
+    {id:'a8',n:'AI 추론용 엣지 서버 (Jetson Orin 등)',cat:'자산취득비',desc:'3,000천원×대',u:3000,pm:false,qty:2,min:1,max:10,yr:'2차'},
+    {id:'a9',n:'개발용 태블릿·스마트 디바이스 (UX 테스트)',cat:'자산취득비',desc:'700천원×대',u:700,pm:false,qty:5,min:1,max:20,yr:'both'},
+    {id:'a10',n:'전문 녹화·방송 장비 (데모·홍보)',cat:'자산취득비',desc:'3,000천원×식',u:3000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    {id:'a11',n:'키오스크·디지털 사이니지 (실증용)',cat:'자산취득비',desc:'2,000천원×대',u:2000,pm:false,qty:3,min:1,max:10,yr:'2차',needPlan:true},
+    {id:'a12',n:'보안토큰(HSM)·인증 장비',cat:'자산취득비',desc:'1,500천원×식',u:1500,pm:false,qty:1,min:1,max:3,yr:'1차'},
+    {id:'a13',n:'스마트 회의실 장비 (화상회의·빔프로젝터)',cat:'자산취득비',desc:'2,000천원×식',u:2000,pm:false,qty:1,min:1,max:2,yr:'1차'},
+    // 신규인력 PC는 신규인력 탭에서 자동 생성
+  ],
+};
+
+function auditFee(t,con){
+  let f;if(t<50000)f=600;else if(t<100000)f=800;else if(t<300000)f=1000;else if(t<500000)f=1500;else if(t<1000000)f=1600;else if(t<3000000)f=1800;else f=2100;
+  const c=+con;if(c===1)f=Math.floor(f*1.1);else if(c>=2)f=Math.floor(f*(1.1+0.05*(c-1)));
+  return f;
+}
+
+// ── 상태 ──────────────────────────────────────────────────────────────────
+let S={
+  orgType:'sme', consortium:1, gov1:580000, gov2:580000, govTotal:1160000,
+  dur:2, sy:2026, sm:4, method:'rule',
+  people:[
+    {name:'홍길동/대표이사·CTO',sal:120000,r1:20,r2:20,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'김AI/AI팀장(부장)',sal:95000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'이개발/AI수석연구원(차장)',sal:88000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'박모델/AI연구원(과장)',sal:75000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'최데이터/데이터엔지니어(대리)',sal:66000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'강백엔드/백엔드개발자(과장)',sal:72000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'윤프론트/프론트엔드개발자(대리)',sal:62000,r1:30,r2:30,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'한MLOps/MLOps엔지니어(대리)',sal:68000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'정PM/프로젝트매니저(차장)',sal:85000,r1:25,r2:25,type:'existing',ct:'현물',note:'기존인력'},
+    {name:'신기획/사업기획·행정(대리)',sal:55000,r1:20,r2:20,type:'existing',ct:'현금',note:'기존인력'},
+  ],
+  newHires:[
+    {name:'신규1/AI연구원(LLM파인튜닝)',sal:60000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
+    {name:'신규2/데이터엔지니어',sal:55000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
+    {name:'신규3/백엔드개발자',sal:52000,r1:60,r2:60,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
+  ],
+  labor:{years:[],totCash:0,totGoods:0,totTotal:0},
+  nhLabor:{totCash:0,totTotal:0,pcCost:0,items:[]},
+  alloc:{운영비:15,여비:4,업무추진비:2,연구용역비:63,유형자산:11},
+  composed:{},
+};
+
 const fmt=n=>Math.floor(n).toLocaleString();
-const n=v=>Math.floor(v); // 숫자용 (엑셀)
+const N=v=>Math.floor(v);
 function getM(yi){const sm=+document.getElementById('startMonth').value,me=document.getElementById('calcMethod').value;if(yi===0){const t=13-sm;return me==='rule'?t-1:t;}return 12;}
-function getTM(){let m=0;for(let i=0;i<S.dur;i++)m+=getM(i);return m;}
-function iAmt(it,qty,tm){if(it.sp==='audit')return auditFee(S.gov+S.pC+S.pG);return it.pm?it.u*tm:it.u*qty;}
-function s0(){S.gov=+document.getElementById('govAmt').value||0;S.pC=+document.getElementById('privCash').value||0;S.pG=+document.getElementById('privGoods').value||0;S.dur=+document.getElementById('duration').value;S.sy=+document.getElementById('startYear').value;S.sm=+document.getElementById('startMonth').value;const tot=S.gov+S.pC+S.pG;document.getElementById('s0c').innerHTML=`<div class="sc blue"><div class="lbl">총 사업비</div><div class="val">${fmt(tot)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">정부출연금</div><div class="val">${fmt(S.gov)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">민간 현금</div><div class="val">${fmt(S.pC)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">민간 현물</div><div class="val">${fmt(S.pG)}</div><div class="sub">천원</div></div>`;let note='';for(let i=0;i<S.dur;i++)note+=`${S.sy+i}년 ${i===0?S.sm+'월':'1월'}~12월 → 적용 ${getM(i)}개월  `;document.getElementById('pNote').textContent=note;}
-function renderPList(){document.getElementById('pList').innerHTML=S.people.map((p,i)=>`<div class="prow"><input type="text" value="${p.name}" placeholder="성명/직위" oninput="S.people[${i}].name=this.value"><input type="number" value="${p.sal}" step="1000" oninput="S.people[${i}].sal=+this.value"><input type="number" value="${p.r1}" min="0" max="100" oninput="S.people[${i}].r1=+this.value">${S.dur>=2?`<input type="number" value="${p.r2}" min="0" max="100" oninput="S.people[${i}].r2=+this.value">`:'<span></span>'}<select onchange="S.people[${i}].type=this.value;if(this.value==='new'){S.people[${i}].ct='현금';S.people[${i}].note='신규인력';}else{S.people[${i}].note='기존인력';}renderPList()"><option value="existing" ${p.type==='existing'?'selected':''}>기존</option><option value="new" ${p.type==='new'?'selected':''}>신규</option></select><select onchange="S.people[${i}].ct=this.value" ${p.type==='new'?'disabled':''}><option value="현물" ${p.ct==='현물'?'selected':''}>현물</option><option value="현금" ${p.ct==='현금'?'selected':''}>현금</option></select><input type="text" value="${p.note}" oninput="S.people[${i}].note=this.value"><button class="del-btn" onclick="S.people.splice(${i},1);renderPList()">×</button></div>`).join('');}
+function getTM(){return getM(0)+getM(1);}
+
+// ── ① 예산 설정 ──────────────────────────────────────────────────────────
+function s0(){
+  S.orgType=document.getElementById('orgType').value;
+  S.consortium=+document.getElementById('consortium').value;
+  S.gov1=+document.getElementById('gov1').value||0;
+  S.gov2=+document.getElementById('gov2').value||0;
+  S.govTotal=+document.getElementById('govTotal').value||0;
+  S.sy=+document.getElementById('startYear').value;
+  S.sm=+document.getElementById('startMonth').value;
+  const ratio=ORG_RATIO[S.orgType];
+  // 최소 총 사업비 역산 (정부지원금이 govMax 비율이라면)
+  const minTotal=Math.ceil(S.govTotal/ratio.govMax);
+  const minPriv=minTotal-S.govTotal;
+  const minCash=Math.ceil(minPriv*ratio.cashMin);
+  const minGoods=minPriv-minCash;
+  document.getElementById('s0budget').innerHTML=`
+    <div class="card" style="background:var(--green-bg);border-color:var(--green-bd)">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">
+        ${S.orgType==='sme'?'중소기업':S.orgType==='mid'?'중견기업':'대기업'} 기준 최소 사업비 구조
+      </div>
+      <div class="g4">
+        <div class="sc blue"><div class="lbl">총 사업비 (최소)</div><div class="val">${fmt(minTotal)}</div><div class="sub">천원 이상</div></div>
+        <div class="sc"><div class="lbl">정부지원금</div><div class="val">${fmt(S.govTotal)}</div><div class="sub">천원 (${(S.govTotal/minTotal*100).toFixed(1)}%)</div></div>
+        <div class="sc amber"><div class="lbl">민간부담금 최소</div><div class="val">${fmt(minPriv)}</div><div class="sub">천원 이상</div></div>
+        <div class="sc"><div class="lbl">민간현금 최소</div><div class="val">${fmt(minCash)}</div><div class="sub">천원 이상 (민간의 ${(ratio.cashMin*100).toFixed(0)}%)</div></div>
+      </div>
+    </div>`;
+  document.getElementById('s0cards').innerHTML='';
+  let note=`사업기간: `;
+  for(let i=0;i<2;i++) note+=`${S.sy+i}년 ${i===0?S.sm+'월':'1월'}~12월 → 적용 ${getM(i)}개월  `;
+  note+=`\n정산수수료: ${fmt(auditFee(S.govTotal,S.consortium))}천원 (사업비 규모 기준${S.consortium>0?', 참여기관 가산 포함':''})`;
+  document.getElementById('pNote').textContent=note;
+  document.getElementById('s0note').textContent=`※ 총 사업비는 정부지원금 ÷ ${(ratio.govMax*100).toFixed(0)}% 이상이어야 합니다. 민간부담금은 현물(인건비+유형자산) + 현금으로 구성됩니다.`;
+}
+
+// ── ② 인건비 ────────────────────────────────────────────────────────────
+function renderPList(){
+  document.getElementById('pList').innerHTML=S.people.map((p,i)=>`
+    <div class="prow">
+      <input type="text" value="${p.name}" placeholder="성명/직위" oninput="S.people[${i}].name=this.value">
+      <input type="number" value="${p.sal}" step="1000" oninput="S.people[${i}].sal=+this.value">
+      <input type="number" value="${p.r1}" min="0" max="100" oninput="S.people[${i}].r1=+this.value">
+      <input type="number" value="${p.r2}" min="0" max="100" oninput="S.people[${i}].r2=+this.value">
+      <select disabled><option>기존</option></select>
+      <select onchange="S.people[${i}].ct=this.value">
+        <option value="현물" ${p.ct==='현물'?'selected':''}>현물</option>
+        <option value="현금" ${p.ct==='현금'?'selected':''}>현금</option>
+      </select>
+      <input type="text" value="${p.note}" oninput="S.people[${i}].note=this.value">
+      <button class="del-btn" onclick="S.people.splice(${i},1);renderPList()">×</button>
+    </div>`).join('');
+}
 function addP(){S.people.push({name:'',sal:60000,r1:30,r2:30,type:'existing',ct:'현물',note:'기존인력'});renderPList();}
-function calcLabor(){S.dur=+document.getElementById('duration').value;S.sy=+document.getElementById('startYear').value;S.sm=+document.getElementById('startMonth').value;S.method=document.getElementById('calcMethod').value;let years=[],tc=0,tg=0;for(let yi=0;yi<S.dur;yi++){const m=getM(yi),yr=S.sy+yi;const rows=S.people.map(p=>{const r=yi===0?p.r1:p.r2;if(!r)return{p,r:0,m,amt:0};return{p,r,m,amt:Math.floor(p.sal/12*m*r/100)};});const yc=rows.filter(x=>x.p.ct==='현금').reduce((a,x)=>a+x.amt,0);const yg=rows.filter(x=>x.p.ct==='현물').reduce((a,x)=>a+x.amt,0);years.push({yr,m,rows,totCash:yc,totGoods:yg,tot:yc+yg});tc+=yc;tg+=yg;}S.labor={years,totCash:tc,totGoods:tg,totTotal:tc+tg};let h=`<div class="card"><div class="card-title">인건비 산정 결과</div><div class="g3" style="margin-bottom:12px"><div class="sc"><div class="lbl">출연금 (현금)</div><div class="val">${fmt(tc)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">민간 (현물)</div><div class="val">${fmt(tg)}</div><div class="sub">천원</div></div><div class="sc blue"><div class="lbl">인건비 합계</div><div class="val">${fmt(tc+tg)}</div><div class="sub">천원</div></div></div>`;years.forEach(y=>{h+=`<div style="font-size:12px;color:var(--text2);margin:10px 0 6px;font-weight:600">${y.yr}년 (${y.m}개월 적용)</div><table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>산출식</th><th>인건비</th><th>현금/현물</th></tr></thead><tbody>`;y.rows.forEach(({p,r,m,amt})=>{if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="4" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ${p.type==='existing'?'ex':'new'}">${p.type==='existing'?'기존':'신규'}</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td style="font-size:11px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag ${p.ct==='현금'?'cash':'goods'}">${p.ct}</span></td></tr>`;});h+=`<tr class="brow"><td colspan="5">합계</td><td><b>${fmt(y.tot)}</b></td><td></td></tr></tbody></table>`;});document.getElementById('laborOut').innerHTML=h+'</div>';}
-function buildAllocPanel(){const gt=S.gov+S.pC+S.pG,lt=S.labor.totTotal,rem=gt-lt;document.getElementById('p2sum').innerHTML=`<div class="card-title">예산 구조</div><div class="g4"><div class="sc blue"><div class="lbl">총 사업비</div><div class="val">${fmt(gt)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">인건비 (확정)</div><div class="val">${fmt(lt)}</div><div class="sub">천원</div></div><div class="sc green"><div class="lbl">비목 배분 예산</div><div class="val">${fmt(rem)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">인건비 비중</div><div class="val">${(lt/gt*100).toFixed(1)}%</div><div class="sub">전체 대비</div></div></div>`;renderSliders();}
-function renderSliders(){const rem=S.gov+S.pC+S.pG-S.labor.totTotal;let h='';BIMOKS.forEach(bm=>{const pct=S.alloc[bm],hint=Math.floor(rem*pct/100);h+=`<div class="alloc-row"><div><div class="alloc-name">${bm}</div><div class="alloc-pct">≈ ${pct}%</div></div><input type="range" min="0" max="90" step="1" value="${pct}" oninput="S.alloc['${bm}']=+this.value;renderSliders()"><span style="font-size:13px;font-weight:600;text-align:right;color:var(--text2)">${pct}%</span><span style="font-size:12px;text-align:right;color:var(--text3)">≈${fmt(hint)}천원</span></div>`;});document.getElementById('allocSl').innerHTML=h;const sum=BIMOKS.reduce((a,bm)=>a+S.alloc[bm],0);document.getElementById('allocHint').innerHTML=`비율 합계: <b>${sum}%</b> — 슬라이더는 항목 자동 선택의 집중도 힌트만 줍니다. <b>합계가 100%가 아니어도 됩니다.</b> 차액은 자동으로 흡수됩니다.`;}
-function runStep4(){go(3);autoCompose();recalcFinal();renderComposed();}
-function autoCompose(){const tm=getTM();S.composed={};BIMOKS.forEach(bm=>{const hint=Math.floor((S.gov+S.pC+S.pG-S.labor.totTotal)*S.alloc[bm]/100);S.composed[bm]=greedyFit(DB[bm]||[],hint,tm);});}
-function greedyFit(items,hint,tm){let result=[],running=0;items.filter(it=>it.sp==='audit').forEach(it=>{const a=iAmt(it,1,tm);result.push({item:it,qty:1,rawAmt:a,finalAmt:a,on:true,auto:true,absorb:false});running+=a;});const pool=[...items.filter(x=>!x.sp)].sort((a,b)=>iAmt(b,b.qty,tm)-iAmt(a,a.qty,tm));for(const it of pool){if(running>=hint)break;const base1=iAmt(it,1,tm);if(!base1)continue;let useQ=it.qty;if(running+base1*useQ>hint*1.2)useQ=Math.max(it.min,Math.min(it.max,Math.floor((hint-running)/base1)));useQ=Math.max(1,Math.min(useQ,it.max));const a=base1*useQ;result.push({item:it,qty:useQ,rawAmt:a,finalAmt:a,on:true,auto:true,absorb:false});running+=a;}items.filter(it=>!it.sp&&!result.find(r=>r.item.id===it.id)).forEach(it=>{const a=iAmt(it,it.qty,tm);result.push({item:it,qty:it.qty,rawAmt:a,finalAmt:a,on:false,auto:false,absorb:false});});return result;}
-function recalcFinal(){const gt=S.gov+S.pC+S.pG,labor=S.labor.totTotal,target=gt-labor;BIMOKS.forEach(bm=>(S.composed[bm]||[]).forEach(r=>{r.finalAmt=r.rawAmt;r.absorb=false;}));let rawOn=0;BIMOKS.forEach(bm=>(S.composed[bm]||[]).filter(r=>r.on).forEach(r=>rawOn+=r.rawAmt));const diff=target-rawOn;if(Math.abs(diff)<1)return;const priority=['연구용역비','운영비','유형자산','여비','업무추진비'];let done=false;for(const bm of priority){if(done)break;const vr=(S.composed[bm]||[]).filter(r=>r.on&&!r.item.sp&&!r.item.pm).sort((a,b)=>b.rawAmt-a.rawAmt);for(const row of vr){const na=row.rawAmt+diff;if(na>0){row.finalAmt=na;row.absorb=true;done=true;break;}}}}
+
+function calcLabor(){
+  let years=[],tc=0,tg=0;
+  for(let yi=0;yi<2;yi++){
+    const m=getM(yi),yr=S.sy+yi;
+    const rows=S.people.map(p=>{
+      const r=yi===0?p.r1:p.r2;
+      if(!r)return{p,r:0,m,amt:0};
+      return{p,r,m,amt:Math.floor(p.sal/12*m*r/100)};
+    });
+    const yc=rows.filter(x=>x.p.ct==='현금').reduce((a,x)=>a+x.amt,0);
+    const yg=rows.filter(x=>x.p.ct==='현물').reduce((a,x)=>a+x.amt,0);
+    years.push({yr,m,rows,totCash:yc,totGoods:yg,tot:yc+yg});
+    tc+=yc;tg+=yg;
+  }
+  S.labor={years,totCash:tc,totGoods:tg,totTotal:tc+tg};
+  let h=`<div class="card"><div class="card-title">기존인력 인건비 산정 결과</div>
+    <div class="g3" style="margin-bottom:10px">
+      <div class="sc"><div class="lbl">출연금(현금)</div><div class="val">${fmt(tc)}</div><div class="sub">천원</div></div>
+      <div class="sc"><div class="lbl">민간현물</div><div class="val">${fmt(tg)}</div><div class="sub">천원</div></div>
+      <div class="sc blue"><div class="lbl">합계</div><div class="val">${fmt(tc+tg)}</div><div class="sub">천원</div></div>
+    </div>`;
+  years.forEach(y=>{
+    h+=`<div style="font-size:12px;font-weight:600;color:var(--text2);margin:8px 0 4px">${y.yr}년 (${y.m}개월)</div>
+    <table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>산출식</th><th>인건비</th><th>현금/현물</th></tr></thead><tbody>`;
+    y.rows.forEach(({p,r,m,amt})=>{
+      if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="4" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}
+      h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ex">기존</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td style="font-size:10px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag ${p.ct==='현금'?'cash':'goods'}">${p.ct}</span></td></tr>`;
+    });
+    h+=`<tr class="brow"><td colspan="5">합계</td><td><b>${fmt(y.tot)}</b></td><td></td></tr></tbody></table>`;
+  });
+  document.getElementById('laborOut').innerHTML=h+'</div>';
+}
+
+// ── ③ 신규인력 고용창출 ──────────────────────────────────────────────────
+function renderNHList(){
+  document.getElementById('newHireList').innerHTML=S.newHires.map((p,i)=>{
+    // PC 구매 가능 여부 체크
+    const m1=+S.newHires[i].m1||0,m2=+S.newHires[i].m2||0;
+    const r1=+S.newHires[i].r1||0,r2=+S.newHires[i].r2||0;
+    const pcOk1=r1>=50&&m1>=6,pcOk2=r2>=50&&m2>=6;
+    const pcPossible=pcOk1||pcOk2;
+    return `<div class="prow" style="grid-template-columns:1.4fr 85px 58px 58px 56px 56px 56px 22px">
+      <input type="text" value="${p.name}" placeholder="신규인력/직위(예정)" oninput="S.newHires[${i}].name=this.value">
+      <input type="number" value="${p.sal}" step="1000" oninput="S.newHires[${i}].sal=+this.value">
+      <input type="number" value="${p.r1}" min="0" max="100" placeholder="1차%" oninput="S.newHires[${i}].r1=+this.value;renderNHList()">
+      <input type="number" value="${p.r2}" min="0" max="100" placeholder="2차%" oninput="S.newHires[${i}].r2=+this.value;renderNHList()">
+      <input type="number" value="${p.m1||getM(0)}" min="0" max="12" placeholder="1차 월수" title="1차년도 실제 참여 개월수" oninput="S.newHires[${i}].m1=+this.value;renderNHList()">
+      <select disabled><option>현금</option></select>
+      <select onchange="S.newHires[${i}].pc=this.value==='Y'" ${!pcPossible?'disabled title="참여율50%+6개월 조건 미충족"':''}>
+        <option value="N" ${!p.pc?'selected':''}>PC구매 안함</option>
+        <option value="Y" ${p.pc?'selected':''} ${!pcPossible?'disabled':''}>PC구매 (${pcPossible?'가능':'조건미충족'})</option>
+      </select>
+      <button class="del-btn" onclick="S.newHires.splice(${i},1);renderNHList()">×</button>
+    </div>`;
+  }).join('');
+}
+function addNH(){
+  S.newHires.push({name:'',sal:50000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:getM(0),m2:12,pc:true});
+  renderNHList();
+}
+
+const PC_COST=1500; // 노트북 1대 기준 단가 (천원)
+
+function calcNewHire(){
+  const tm=getTM();
+  let totCash=0,pcCost=0,items=[];
+  const years=[{yi:0,m:getM(0),yr:S.sy},{yi:1,m:getM(1),yr:S.sy+1}];
+  S.newHires.forEach((p,idx)=>{
+    let totalAmt=0;
+    years.forEach(({yi,m,yr})=>{
+      const r=yi===0?p.r1:p.r2;
+      if(!r)return;
+      const actualM=yi===0?(p.m1||m):m;
+      const amt=Math.floor(p.sal/12*actualM*r/100);
+      totalAmt+=amt;
+    });
+    totCash+=totalAmt;
+    // PC 구매 조건 체크
+    const pcOk=(p.r1>=50&&(p.m1||getM(0))>=6)||(p.r2>=50&&getM(1)>=6);
+    let pcAmt=0;
+    if(p.pc&&pcOk){pcAmt=PC_COST;pcCost+=pcAmt;}
+    items.push({...p,totalAmt,pcAmt,pcOk});
+  });
+  S.nhLabor={totCash,totTotal:totCash,pcCost,items};
+
+  let h=`<div class="card new-hire-card">
+    <div class="nh-title">🆕 신규인력 고용창출 계획 요약</div>
+    <div class="g4" style="margin-bottom:12px">
+      <div class="sc purple"><div class="lbl">신규 채용 인원</div><div class="val">${S.newHires.length}명</div><div class="sub">고용창출</div></div>
+      <div class="sc"><div class="lbl">신규인력 인건비</div><div class="val">${fmt(totCash)}</div><div class="sub">천원 (현금)</div></div>
+      <div class="sc"><div class="lbl">PC/노트북 구매비</div><div class="val">${fmt(pcCost)}</div><div class="sub">천원</div></div>
+      <div class="sc blue"><div class="lbl">신규인력 소계</div><div class="val">${fmt(totCash+pcCost)}</div><div class="sub">천원</div></div>
+    </div>
+    <table class="ftbl"><thead><tr><th>성명/직위</th><th>예정연봉</th><th>1차 참여율</th><th>2차 참여율</th><th>인건비</th><th>PC구매</th><th>비고</th></tr></thead><tbody>`;
+  items.forEach(it=>{
+    const pcNote=it.pc&&it.pcOk?`노트북 1대 (${PC_COST}천원)`:(!it.pcOk&&it.pc?'<span class="tag warn">조건미충족</span>':'-');
+    h+=`<tr><td style="font-weight:600">${it.name||'미입력'}</td><td>${fmt(it.sal)}</td><td>${it.r1}%</td><td>${it.r2}%</td><td><b>${fmt(it.totalAmt)}</b></td><td>${pcNote}</td><td><span class="tag newjob">신규채용</span> <span class="tag cash">현금</span></td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  document.getElementById('newHireResult').innerHTML=h;
+}
+
+// ── ④ 비목 가이드 ────────────────────────────────────────────────────────
+function buildAllocPanel(){
+  calcLabor();calcNewHire();
+  const ratio=ORG_RATIO[S.orgType];
+  const govT=S.govTotal;
+  const minTotal=Math.ceil(govT/ratio.govMax);
+  const laborTotal=S.labor.totTotal+S.nhLabor.totTotal;
+  const pcTotal=S.nhLabor.pcCost;
+  // 정부지원금 중 인건비 현금 + 신규인건비 + 나머지 배분
+  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const rem=govT-laborCash-pcTotal; // 비목 배분 가능 예산 (출연금 기준)
+  S.remBudget=rem;S.pcTotal=pcTotal;S.laborTotal=laborTotal;S.minTotal=minTotal;
+  document.getElementById('p3sum').innerHTML=`
+    <div class="card-title">예산 구조 확인</div>
+    <div class="g5">
+      <div class="sc blue"><div class="lbl">정부지원금</div><div class="val">${fmt(govT)}</div><div class="sub">천원 (확정)</div></div>
+      <div class="sc"><div class="lbl">인건비 합계</div><div class="val">${fmt(laborTotal)}</div><div class="sub">천원 (현금+현물)</div></div>
+      <div class="sc purple"><div class="lbl">신규인력 PC</div><div class="val">${fmt(pcTotal)}</div><div class="sub">천원</div></div>
+      <div class="sc green"><div class="lbl">비목 배분 잔액</div><div class="val">${fmt(rem)}</div><div class="sub">천원</div></div>
+      <div class="sc amber"><div class="lbl">민간부담금 최소</div><div class="val">${fmt(minTotal-govT)}</div><div class="sub">천원 이상 필요</div></div>
+    </div>`;
+  renderSliders();
+}
+function renderSliders(){
+  const rem=S.remBudget;let h='';
+  BIMOKS.forEach(bm=>{
+    const pct=S.alloc[bm],hint=Math.floor(rem*pct/100);
+    h+=`<div class="alloc-row">
+      <div><div style="font-size:13px;font-weight:600">${bm}</div><div style="font-size:11px;color:var(--text3)">≈ ${pct}%</div></div>
+      <input type="range" min="0" max="90" step="1" value="${pct}" oninput="S.alloc['${bm}']=+this.value;renderSliders()">
+      <span style="font-size:13px;font-weight:600;text-align:right;color:var(--text2)">${pct}%</span>
+      <span style="font-size:12px;text-align:right;color:var(--text3)">≈${fmt(hint)}천원</span>
+    </div>`;
+  });
+  document.getElementById('allocSl').innerHTML=h;
+  const sum=BIMOKS.reduce((a,bm)=>a+S.alloc[bm],0);
+  document.getElementById('allocHint').innerHTML=`비율 합계: <b>${sum}%</b> — 슬라이더는 집중도 힌트만 줍니다. 차액은 자동 흡수됩니다.<br>
+  ⚠️ <b>유의:</b> 사업추진비는 총사업비의 2% 이내 / 유형자산은 총사업비의 10% 이내 (규정 검증 단계에서 자동 확인)`;
+}
+
+// ── ⑤ 항목 자동 선택 ─────────────────────────────────────────────────────
+function runStep5(){go(4);autoCompose();recalcFinal();renderComposed();}
+
+function autoCompose(){
+  const tm=getTM();S.composed={};
+  BIMOKS.forEach(bm=>{
+    const hint=Math.floor(S.remBudget*S.alloc[bm]/100);
+    S.composed[bm]=greedyFit(DB[bm]||[],hint,tm);
+  });
+}
+function greedyFit(items,hint,tm){
+  let result=[],running=0;
+  items.filter(it=>it.sp==='audit').forEach(it=>{
+    const a=auditFee(S.govTotal,S.consortium);
+    result.push({item:it,qty:1,rawAmt:a,finalAmt:a,on:true,auto:true,absorb:false});running+=a;
+  });
+  const pool=[...items.filter(x=>!x.sp)].sort((a,b)=>(b.pm?b.u*tm:b.u*b.qty)-(a.pm?a.u*tm:a.u*a.qty));
+  for(const it of pool){
+    if(running>=hint)break;
+    const base1=it.pm?it.u*tm:it.u;if(!base1)continue;
+    let useQ=it.qty;
+    if(!it.pm&&running+base1*useQ>hint*1.2)useQ=Math.max(it.min,Math.min(it.max,Math.floor((hint-running)/base1)));
+    useQ=Math.max(1,Math.min(useQ,it.max));
+    const a=it.pm?it.u*tm:it.u*useQ;
+    result.push({item:it,qty:useQ,rawAmt:a,finalAmt:a,on:true,auto:true,absorb:false});running+=a;
+  }
+  items.filter(it=>!it.sp&&!result.find(r=>r.item.id===it.id)).forEach(it=>{
+    const a=it.pm?it.u*tm:it.u*it.qty;
+    result.push({item:it,qty:it.qty,rawAmt:a,finalAmt:a,on:false,auto:false,absorb:false});
+  });
+  return result;
+}
+
+function recalcFinal(){
+  // 목표: 정부지원금 = 인건비현금 + PC비 + 비목들(출연금 파트)
+  // 비목 전체 합산 → 총사업비에 맞추기 위해 최대 비목에 차액 흡수
+  const govT=S.govTotal;
+  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const pcTotal=S.nhLabor.pcCost;
+  const targetBimok=govT-laborCash-pcTotal;
+
+  BIMOKS.forEach(bm=>(S.composed[bm]||[]).forEach(r=>{r.finalAmt=r.rawAmt;r.absorb=false;}));
+  let rawOn=0;BIMOKS.forEach(bm=>(S.composed[bm]||[]).filter(r=>r.on).forEach(r=>rawOn+=r.rawAmt));
+  const diff=targetBimok-rawOn;if(Math.abs(diff)<1)return;
+  const priority=['연구용역비','운영비','유형자산','여비','업무추진비'];
+  let done=false;
+  for(const bm of priority){if(done)break;
+    const vr=(S.composed[bm]||[]).filter(r=>r.on&&!r.item.sp&&!r.item.pm).sort((a,b)=>b.rawAmt-a.rawAmt);
+    for(const row of vr){const na=row.rawAmt+diff;if(na>0){row.finalAmt=na;row.absorb=true;done=true;break;}}
+  }
+}
+
 function toggleItem(bm,id){const row=(S.composed[bm]||[]).find(r=>r.item.id===id);if(row&&!row.item.sp)row.on=!row.on;recalcFinal();renderComposed();}
-function updateQty(bm,id,qty){const tm=getTM();const row=(S.composed[bm]||[]).find(r=>r.item.id===id);if(row){row.qty=Math.max(row.item.min,Math.min(row.item.max,qty));row.rawAmt=iAmt(row.item,row.qty,tm);}recalcFinal();renderComposed();}
-function renderComposed(){const gt=S.gov+S.pC+S.pG,labor=S.labor.totTotal,tm=getTM(),rem=gt-labor;let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});const bmSum=Object.values(bmT).reduce((a,v)=>a+v,0),grand=labor+bmSum,diff=grand-gt,ok=Math.abs(diff)<10;document.getElementById('p3top').innerHTML=`<div class="g4" style="margin-bottom:14px"><div class="sc blue"><div class="lbl">총 사업비 (목표)</div><div class="val">${fmt(gt)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">인건비</div><div class="val">${fmt(labor)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">비목 합산</div><div class="val">${fmt(bmSum)}</div><div class="sub">천원</div></div><div class="sc ${ok?'green':Math.abs(diff)<5000?'amber':'red'}"><div class="lbl">전체 합계 / 차이</div><div class="val">${fmt(grand)}</div><div class="sub">${ok?'✓ 정확히 일치':(diff>0?'+':'')+fmt(diff)+'천원'}</div></div></div>`;let h='';BIMOKS.forEach(bm=>{const hint=Math.floor(rem*S.alloc[bm]/100),selSum=bmT[bm],rows=S.composed[bm]||[];const pct=hint>0?Math.min(selSum/hint*100,100):0;h+=`<div class="bimok-sect"><div class="bimok-hdr"><span class="bimok-name">${bm}</span><span class="bimok-meta"><b>${fmt(selSum)}</b>천원 <span style="color:var(--text3)">/ 가이드 ≈${fmt(hint)}천원</span></span></div><div class="pb-wrap"><div class="pb${pct>=90&&pct<=115?' ok':pct>130?' over':''}" style="width:${Math.min(pct,100)}%"></div></div>`;[...rows.filter(r=>r.on),...rows.filter(r=>!r.on)].forEach(row=>{const it=row.item,isF=it.pm||it.sp,isA=row.absorb,cls=row.on?(isA?'item-row absorb':'item-row on'):'item-row';h+=`<div class="${cls}" onclick="toggleItem('${bm}','${it.id}')"><span style="font-size:14px;color:${row.on?(isA?'var(--amber)':'var(--blue)'):'var(--text3)'}">${row.on?'●':'○'}</span><div><span class="iname">${it.n}</span>${row.auto&&row.on&&!isA?'<span class="tag auto">자동</span>':''}${isA?'<span class="tag absorb">차액흡수</span>':''}<div class="idesc">[${it.cat}] ${it.desc}${it.pm?` × ${tm}개월`:''}</div></div><div onclick="event.stopPropagation()">${isF?`<span style="font-size:11px;color:var(--text3)">${it.pm?tm+'개월':'고정'}</span>`:`<input class="qinput" type="number" value="${row.qty}" min="${it.min}" max="${it.max}" oninput="updateQty('${bm}','${it.id}',+this.value)">`}</div><div class="iamt">${isA&&row.rawAmt!==row.finalAmt?`<div style="font-size:10px;text-decoration:line-through;color:var(--text3)">${fmt(row.rawAmt)}</div>`:''}${fmt(row.finalAmt)}천원</div></div>`;});h+=`</div>`;});document.getElementById('p3items').innerHTML=h;}
-function buildFinal(){const gt=S.gov+S.pC+S.pG,lr=S.labor,d=S.dur,sy=S.sy,tm=getTM();const bmd={인건비:{total:lr.totTotal,A:lr.totCash,cash:0,goods:lr.totGoods}};BIMOKS.forEach(bm=>{const tot=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);bmd[bm]={total:tot,A:Math.floor(tot*0.75),cash:Math.floor(tot*0.05),goods:tot-Math.floor(tot*0.75)-Math.floor(tot*0.05)};});const gT=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].total,0);const gA=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].A,0);const gC=['인건비',...BIMOKS].reduce((a,bm)=>a+(bmd[bm].cash||0),0);const gG=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].goods,0);const diff=gT-gt,ok=Math.abs(diff)<10;let h=`<div class="g4" style="margin-bottom:14px"><div class="sc blue"><div class="lbl">입력 총 사업비</div><div class="val">${fmt(gt)}</div><div class="sub">천원</div></div><div class="sc ${ok?'green':'amber'}"><div class="lbl">산출 합산액</div><div class="val">${fmt(gT)}</div><div class="sub">천원</div></div><div class="sc ${ok?'green':'amber'}"><div class="lbl">차이</div><div class="val">${ok?'0':(diff>0?'+':'')+fmt(diff)}</div><div class="sub">천원</div></div><div class="sc"><div class="lbl">인건비 비중</div><div class="val">${(lr.totTotal/gT*100).toFixed(1)}%</div><div class="sub">전체 대비</div></div></div><div class="alert ${ok?'ok':'warn'}">${ok?'✓ 총 사업비와 합산액이 완벽히 일치합니다.':'⚡ 차이 '+fmt(Math.abs(diff))+'천원 — ④ 항목선택에서 조정 후 다시 출력해주세요.'}</div>`;
-  h+=`<div class="card"><div class="card-title">총괄표 (단위: 천원)</div><table class="ftbl"><thead><tr><th>비목</th><th>정부출연금(A)</th><th>민간현금</th><th>민간현물</th><th>소계(B)</th><th>합계(A+B)</th><th>구성비(%)</th></tr></thead><tbody>`;['인건비',...BIMOKS].forEach(bm=>{const t=bmd[bm],pct=gT>0?(t.total/gT*100).toFixed(1):'0.0';h+=`<tr><td style="font-weight:600">${bm}</td><td>${fmt(t.A)}</td><td>${fmt(t.cash||0)}</td><td>${fmt(t.goods)}</td><td>${fmt((t.cash||0)+t.goods)}</td><td>${fmt(t.total)}</td><td>${pct}%</td></tr>`;});h+=`<tr class="trow"><td>합  계</td><td>${fmt(gA)}</td><td>${fmt(gC)}</td><td>${fmt(gG)}</td><td>${fmt(gC+gG)}</td><td>${fmt(gT)}</td><td>100%</td></tr></tbody></table></div>`;
-  h+=`<div class="card"><div class="card-title">인건비 세부 (단위: 천원)</div>`;if(d>=2){h+=`<div class="tab-row">`;for(let i=0;i<d;i++)h+=`<button class="tab${i===0?' on':''}" onclick="swT(${i},${d},this.closest('.card'))">${sy+i}년</button>`;h+=`</div>`;}lr.years.forEach((y,yi)=>{h+=`<div class="ytab" style="display:${yi===0?'block':'none'}"><table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>참여월</th><th>산출식</th><th>인건비</th><th>현금/현물</th><th>비고</th></tr></thead><tbody>`;y.rows.forEach(({p,r,m,amt})=>{if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="6" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ${p.type==='existing'?'ex':'new'}">${p.type==='existing'?'기존':'신규'}</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td>${m}개월</td><td style="font-size:11px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag ${p.ct==='현금'?'cash':'goods'}">${p.ct}</span></td><td style="font-size:11px;color:var(--text3)">${p.note}</td></tr>`;});h+=`<tr class="brow"><td colspan="6">합계</td><td><b>${fmt(y.tot)}</b></td><td></td><td></td></tr></tbody></table></div>`;});h+=`</div>`;
-  h+=`<div class="card"><div class="card-title">세부 항목 산출내역 (단위: 천원)</div><table class="ftbl"><thead><tr><th>비목</th><th>항목명 [세목]</th><th>산출근거</th><th>수량</th><th>금액</th><th>비고</th></tr></thead><tbody>`;BIMOKS.forEach(bm=>{const oR=(S.composed[bm]||[]).filter(r=>r.on);if(!oR.length)return;let bs=0;oR.forEach(r=>{const it=r.item,qL=it.pm?`${tm}개월`:it.sp?'1식':`${r.qty}`;bs+=r.finalAmt;h+=`<tr><td style="font-size:11px;color:var(--text2)">${bm}</td><td>${it.n}${r.absorb?'<span class="tag absorb" style="margin-left:4px">차액흡수</span>':''}<br><span style="font-size:10px;color:var(--text3)">[${it.cat}]</span></td><td style="font-size:11px">${it.desc}${it.pm?` × ${tm}개월`:''}</td><td>${qL}</td><td><b>${fmt(r.finalAmt)}</b>${r.absorb&&r.rawAmt!==r.finalAmt?`<br><span style="font-size:10px;text-decoration:line-through;color:var(--text3)">${fmt(r.rawAmt)}</span>`:''}</td><td style="font-size:11px;color:var(--text3)">${r.absorb?'차액흡수':'기준가'}</td></tr>`;});h+=`<tr class="brow"><td colspan="4">${bm} 소계</td><td><b>${fmt(bs)}</b></td><td></td></tr>`;});h+=`</tbody></table></div>`;
+function updateQty(bm,id,qty){
+  const tm=getTM();const row=(S.composed[bm]||[]).find(r=>r.item.id===id);
+  if(row&&!row.item.pm){row.qty=Math.max(row.item.min,Math.min(row.item.max,qty));row.rawAmt=row.item.u*row.qty;}
+  recalcFinal();renderComposed();
+}
+
+function renderComposed(){
+  const govT=S.govTotal,laborCash=S.labor.totCash+S.nhLabor.totCash,pcT=S.nhLabor.pcCost;
+  const tm=getTM();
+  let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
+  const bmSum=Object.values(bmT).reduce((a,v)=>a+v,0);
+  const grandGov=laborCash+pcT+bmSum;
+  const diff=grandGov-govT,ok=Math.abs(diff)<10;
+  const rem=S.remBudget;
+
+  document.getElementById('p4top').innerHTML=`
+    <div class="g4" style="margin-bottom:12px">
+      <div class="sc blue"><div class="lbl">정부지원금 (목표)</div><div class="val">${fmt(govT)}</div><div class="sub">천원</div></div>
+      <div class="sc"><div class="lbl">인건비(현금)+PC</div><div class="val">${fmt(laborCash+pcT)}</div><div class="sub">천원</div></div>
+      <div class="sc"><div class="lbl">비목 합산</div><div class="val">${fmt(bmSum)}</div><div class="sub">천원</div></div>
+      <div class="sc ${ok?'green':Math.abs(diff)<5000?'amber':'red'}">
+        <div class="lbl">출연금 합계 / 차이</div><div class="val">${fmt(grandGov)}</div>
+        <div class="sub">${ok?'✓ 일치':(diff>0?'+':'')+fmt(diff)+'천원'}</div>
+      </div>
+    </div>`;
+
+  let h='';
+  BIMOKS.forEach(bm=>{
+    const hint=Math.floor(rem*S.alloc[bm]/100),selSum=bmT[bm],rows=S.composed[bm]||[];
+    const pct=hint>0?Math.min(selSum/hint*100,100):0;
+    h+=`<div class="bimok-sect"><div class="bimok-hdr">
+      <span style="font-size:13px;font-weight:700">${bm}</span>
+      <span style="font-size:12px;color:var(--text2)"><b>${fmt(selSum)}</b>천원 <span style="color:var(--text3)">/ 가이드 ≈${fmt(hint)}천원</span></span>
+    </div>
+    <div class="pb-wrap"><div class="pb${pct>=90&&pct<=115?' ok':pct>130?' over':''}" style="width:${Math.min(pct,100)}%"></div></div>`;
+    [...rows.filter(r=>r.on),...rows.filter(r=>!r.on)].forEach(row=>{
+      const it=row.item,isF=it.pm||it.sp,isA=row.absorb;
+      const needPlan=it.needPlan&&row.on;
+      const yrLabel=it.yr&&it.yr!=='both'?`<span class="tag warn">${it.yr}차년도</span>`:'';
+      h+=`<div class="item-row${row.on?(isA?' absorb':' on'):''}${it.yr==='2차'?'':''}" onclick="toggleItem('${bm}','${it.id}')">
+        <span style="font-size:13px;color:${row.on?(isA?'var(--amber)':'var(--blue)'):'var(--text3)'}">${row.on?'●':'○'}</span>
+        <div>
+          <span class="iname">${it.n}</span>
+          ${row.auto&&row.on&&!isA?'<span class="tag auto">자동</span>':''}
+          ${isA?'<span class="tag absorb">차액흡수</span>':''}
+          ${needPlan?'<span class="tag warn">활용계획서 필요</span>':''}
+          ${yrLabel}
+          <div class="idesc">[${it.cat}] ${it.desc}${it.pm?` × ${tm}개월`:''}</div>
+        </div>
+        <div onclick="event.stopPropagation()">
+          ${isF?`<span style="font-size:11px;color:var(--text3)">${it.pm?tm+'개월':'고정'}</span>`
+          :`<input class="qinput" type="number" value="${row.qty}" min="${it.min}" max="${it.max}" oninput="updateQty('${bm}','${it.id}',+this.value)">`}
+        </div>
+        <div class="iamt">
+          ${isA&&row.rawAmt!==row.finalAmt?`<div style="font-size:10px;text-decoration:line-through;color:var(--text3)">${fmt(row.rawAmt)}</div>`:''}
+          ${fmt(row.finalAmt)}천원
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  document.getElementById('p4items').innerHTML=h;
+}
+
+// ── ⑥ 규정 검증 ──────────────────────────────────────────────────────────
+function buildValidation(){
+  const govT=S.govTotal;
+  const ratio=ORG_RATIO[S.orgType];
+  const laborGoods=S.labor.totGoods;
+  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const pcT=S.nhLabor.pcCost;
+  let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
+  const bmSum=Object.values(bmT).reduce((a,v)=>a+v,0);
+  const totalGovUsed=laborCash+pcT+bmSum;
+  // 민간부담금 = 현물(인건비 현물 + 유형자산 현물) + 현금
+  const privGoods=laborGoods; // 현물은 기존인력 인건비
+  const totalBusiness=govT+privGoods; // 최소 총사업비 (민간현금 미포함 시 최소값)
+  const minPriv=Math.ceil(govT/ratio.govMax*(1-ratio.govMax));
+  const minPrivCash=Math.ceil(minPriv*ratio.cashMin);
+  // 유형자산 비율
+  const assetAmt=(bmT['유형자산']||0)+pcT;
+  const assetRatio=totalBusiness>0?assetAmt/totalBusiness:0;
+  // 사업추진비 비율
+  const bizAmt=bmT['업무추진비']||0;
+  const bizRatio=totalBusiness>0?bizAmt/totalBusiness:0;
+  // 정산수수료 확인
+  const auditRow=(S.composed['운영비']||[]).find(r=>r.item.sp==='audit'&&r.on);
+  const auditAmt=auditRow?auditRow.finalAmt:0;
+  const auditRequired=auditFee(govT,S.consortium);
+
+  const checks=[
+    {title:'정부지원금 비율',val:`${(govT/totalBusiness*100).toFixed(1)}%`,limit:`${(ratio.govMax*100).toFixed(0)}% 이내`,ok:govT/totalBusiness<=ratio.govMax,sub:`정부지원금 ${fmt(govT)} / 총사업비 ${fmt(totalBusiness)}`},
+    {title:'민간부담금 현금 최소',val:`${fmt(minPrivCash)}천원 이상 필요`,limit:`민간부담금의 ${(ratio.cashMin*100).toFixed(0)}% 이상`,ok:true,sub:`협약 시 민간현금 통장에 ${fmt(minPrivCash)}천원 이상 확보 필요`},
+    {title:'유형자산 한도 (10% 이내)',val:`${(assetRatio*100).toFixed(1)}% (${fmt(assetAmt)}천원)`,limit:`총사업비의 10% 이내`,ok:assetRatio<=0.10,sub:`유형자산 ${fmt(bmT['유형자산']||0)} + 신규PC ${fmt(pcT)} = ${fmt(assetAmt)}천원`},
+    {title:'사업추진비 한도 (2% 이내)',val:`${(bizRatio*100).toFixed(1)}% (${fmt(bizAmt)}천원)`,limit:`총사업비의 2% 이내`,ok:bizRatio<=0.02,sub:`외부기관 참석자 없는 회의비 불인정`},
+    {title:'정산위탁수수료 산정',val:`${fmt(auditAmt)}천원 편성`,limit:`${fmt(auditRequired)}천원 이상 필요`,ok:auditAmt>=auditRequired,sub:`사업비 규모 기준${S.consortium>0?', 참여기관 가산':''}`},
+    {title:'신규인력 고용창출',val:`${S.newHires.length}명 채용 계획`,limit:'사업계획서 필수 기재',ok:S.newHires.length>0,sub:'공고일 이후 채용, 사업계획서에 구체적 계획 필요'},
+    {title:'신규인력 PC 구매 조건',val:S.nhLabor.items.filter(x=>x.pc&&x.pcOk).length+'명 구매 가능',limit:'참여율50%↑ + 참여기간6개월↑',ok:S.nhLabor.items.filter(x=>x.pc&&!x.pcOk).length===0,sub:'조건 미충족 신규인력의 PC 구매 불가'},
+    {title:'유형자산 활용계획서',val:(S.composed['유형자산']||[]).filter(r=>r.on&&r.item.needPlan).length+'건 필요',limit:'3,000만원 이상 자산 필수',ok:true,sub:'GPU 서버 등 고가 장비는 활용계획서 별도 제출'},
+  ];
+
+  let h='<div class="rule-grid">';
+  checks.forEach(c=>{
+    const cls=c.ok?'ok':'err';
+    h+=`<div class="rule-item ${cls}">
+      <div class="r-title">${c.ok?'✓':'✗'} ${c.title}</div>
+      <div class="r-val">${c.val}</div>
+      <div class="r-sub">${c.limit} — ${c.sub}</div>
+    </div>`;
+  });
+  h+='</div>';
+
+  const errCnt=checks.filter(c=>!c.ok).length;
+  h=`<div class="alert ${errCnt===0?'ok':errCnt<=2?'warn':'err'}">${errCnt===0?'✅ 모든 규정 검증 통과! 최종 출력으로 진행하세요.':`⚠️ ${errCnt}건 주의사항 확인 필요 — 빨간색 항목을 수정 후 진행해주세요.`}</div>`+h;
+
+  // 3,000만원 이상 자산 목록
+  const bigAssets=(S.composed['유형자산']||[]).filter(r=>r.on&&r.finalAmt>=30000);
+  if(bigAssets.length>0){
+    h+=`<div class="card" style="border-color:var(--amber-bd);background:var(--amber-bg)">
+      <div class="card-title" style="color:var(--amber)">📋 자산취득 활용계획서 제출 필요 자산 목록 (3,000만원 이상)</div>
+      <table class="ftbl"><thead><tr><th>항목명</th><th>금액(천원)</th><th>비고</th></tr></thead><tbody>`;
+    bigAssets.forEach(r=>{h+=`<tr><td>${r.item.n}</td><td><b>${fmt(r.finalAmt)}</b></td><td style="font-size:11px;color:var(--amber)">자산취득 활용계획서 별도 작성 필수</td></tr>`;});
+    h+=`</tbody></table></div>`;
+  }
+  document.getElementById('validationOut').innerHTML=h;
+}
+
+// ── ⑦ 최종 출력 ──────────────────────────────────────────────────────────
+function buildFinal(){
+  const govT=S.govTotal,lr=S.labor,d=2,sy=S.sy,tm=getTM();
+  const ratio=ORG_RATIO[S.orgType];
+  const privGoods=lr.totGoods;
+  const minPriv=Math.ceil(govT/ratio.govMax*(1-ratio.govMax));
+  const minPrivCash=Math.ceil(minPriv*ratio.cashMin);
+  // 비목 합산
+  let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
+  // 신규인력 항목 인건비는 운영비가 아닌 인건비에 포함
+  const nhCash=S.nhLabor.totCash,pcT=S.nhLabor.pcCost;
+  const laborTotal=lr.totTotal+nhCash;
+  const laborA=lr.totCash+nhCash;
+  const laborGoods=lr.totGoods;
+  const totalGov=laborA+pcT+Object.values(bmT).reduce((a,v)=>a+v,0);
+  const totalPrivGoods=laborGoods; // 현물은 기존인력 인건비만
+  const totalPrivCash=minPrivCash; // 최소 민간현금
+  const totalBiz=totalGov+totalPrivGoods+totalPrivCash;
+
+  // 비목 구조 (출연금:민간현금:민간현물 = 75:5:20 근사)
+  const bmd={
+    인건비:{total:laborTotal,A:laborA,cash:0,goods:laborGoods},
+  };
+  BIMOKS.forEach(bm=>{
+    const tot=bmT[bm]+(bm==='유형자산'?pcT:0);
+    bmd[bm]={total:tot,A:Math.floor(tot*0.78),cash:Math.floor(tot*0.05),goods:tot-Math.floor(tot*0.78)-Math.floor(tot*0.05)};
+  });
+  const gT=Object.values(bmd).reduce((a,t)=>a+t.total,0);
+  const gA=Object.values(bmd).reduce((a,t)=>a+t.A,0);
+  const gC=Object.values(bmd).reduce((a,t)=>a+(t.cash||0),0);
+  const gG=Object.values(bmd).reduce((a,t)=>a+t.goods,0);
+  const diff=gA-govT,ok=Math.abs(diff)<1000;
+
+  let h=`<div class="g4" style="margin-bottom:14px">
+    <div class="sc blue"><div class="lbl">총 사업비</div><div class="val">${fmt(gT)}</div><div class="sub">천원</div></div>
+    <div class="sc"><div class="lbl">정부지원금</div><div class="val">${fmt(govT)}</div><div class="sub">천원</div></div>
+    <div class="sc"><div class="lbl">민간현금 (최소)</div><div class="val">${fmt(minPrivCash)}</div><div class="sub">천원 이상</div></div>
+    <div class="sc"><div class="lbl">민간현물</div><div class="val">${fmt(laborGoods)}</div><div class="sub">천원</div></div>
+  </div>`;
+
+  // 총괄표
+  h+=`<div class="card"><div class="card-title">총괄표 (단위: 천원)</div>
+  <table class="ftbl"><thead><tr><th>비목</th><th>정부출연금(A)</th><th>민간현금</th><th>민간현물</th><th>소계(B)</th><th>합계(A+B)</th><th>구성비(%)</th></tr></thead><tbody>`;
+  ['인건비',...BIMOKS].forEach(bm=>{
+    const t=bmd[bm];if(!t)return;const pct=gT>0?(t.total/gT*100).toFixed(1):'0';
+    h+=`<tr><td style="font-weight:600">${bm}</td><td>${fmt(t.A)}</td><td>${fmt(t.cash||0)}</td><td>${fmt(t.goods)}</td><td>${fmt((t.cash||0)+t.goods)}</td><td>${fmt(t.total)}</td><td>${pct}%</td></tr>`;
+  });
+  h+=`<tr class="trow"><td>합  계</td><td>${fmt(gA)}</td><td>${fmt(gC)}</td><td>${fmt(gG)}</td><td>${fmt(gC+gG)}</td><td>${fmt(gT)}</td><td>100%</td></tr></tbody></table></div>`;
+
+  // 인건비 세부 (기존+신규 통합)
+  h+=`<div class="card"><div class="card-title">인건비 세부 (단위: 천원)</div>`;
+  if(d>=2){h+=`<div class="tab-row">`;for(let i=0;i<d;i++)h+=`<button class="tab${i===0?' on':''}" onclick="swT(${i},${d},this.closest('.card'))">${sy+i}년</button>`;h+=`</div>`;}
+  lr.years.forEach((y,yi)=>{
+    const nhM=yi===0?S.newHires.map(p=>({p,m:p.m1||getM(0),r:p.r1})):S.newHires.map(p=>({p,m:getM(1),r:p.r2}));
+    h+=`<div class="ytab" style="display:${yi===0?'block':'none'}">
+    <table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>참여월</th><th>산출식</th><th>인건비</th><th>현금/현물</th><th>비고</th></tr></thead><tbody>`;
+    y.rows.forEach(({p,r,m,amt})=>{
+      if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="6" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}
+      h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ex">기존</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td>${m}개월</td><td style="font-size:10px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag goods">현물</span></td><td style="font-size:11px;color:var(--text3)">${p.note}</td></tr>`;
+    });
+    nhM.forEach(({p,m,r})=>{
+      if(!r||!m)return;
+      const amt=Math.floor(p.sal/12*m*r/100);
+      h+=`<tr style="background:var(--purple-bg)"><td style="font-weight:600">${p.name||'신규인력'}</td><td><span class="tag new">신규</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td>${m}개월</td><td style="font-size:10px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag cash">현금</span></td><td style="font-size:11px;color:var(--purple)">신규채용·고용창출</td></tr>`;
+    });
+    h+=`<tr class="brow"><td colspan="6">합계</td><td><b>${fmt(y.tot+nhM.reduce((a,x)=>a+(x.r&&x.m?Math.floor(x.p.sal/12*x.m*x.r/100):0),0))}</b></td><td></td><td></td></tr></tbody></table></div>`;
+  });
+  h+=`</div>`;
+
+  // 신규인력 고용창출 계획서
+  h+=`<div class="card new-hire-card"><div class="card-title" style="color:var(--purple)">🆕 신규인력 고용창출 계획서</div>
+  <table class="ftbl"><thead><tr><th>성명/직위(예정)</th><th>예정연봉</th><th>채용 목적·업무</th><th>1차 참여율</th><th>2차 참여율</th><th>인건비(천원)</th><th>PC/노트북</th></tr></thead><tbody>`;
+  S.nhLabor.items.forEach(it=>{
+    h+=`<tr><td style="font-weight:600;color:var(--purple)">${it.name||'미입력'} <span class="tag newjob">신규채용</span></td><td>${fmt(it.sal)}</td><td style="font-size:11px;color:var(--text2)">AI 에이전트 서비스 개발·운영</td><td>${it.r1}%</td><td>${it.r2}%</td><td><b>${fmt(it.totalAmt)}</b></td><td>${it.pc&&it.pcOk?`노트북 1대 (${PC_COST}천원)`:'-'}</td></tr>`;
+  });
+  h+=`<tr class="brow"><td colspan="5">소계</td><td><b>${fmt(S.nhLabor.totCash)}</b></td><td>${fmt(pcT)}천원</td></tr></tbody></table></div>`;
+
+  // 세부 항목 산출내역
+  h+=`<div class="card"><div class="card-title">세부 항목 산출내역 (단위: 천원)</div>
+  <table class="ftbl"><thead><tr><th>비목</th><th>항목명 [세목]</th><th>산출근거</th><th>수량/기간</th><th>금액</th><th>비고</th></tr></thead><tbody>`;
+  // 신규인력 PC 먼저
+  if(pcT>0){
+    S.nhLabor.items.filter(x=>x.pc&&x.pcOk).forEach(it=>{
+      h+=`<tr style="background:var(--purple-bg)"><td style="font-size:11px;color:var(--purple)">유형자산</td><td>${it.name} 노트북 <span class="tag newjob">신규인력</span><br><span style="font-size:10px;color:var(--text3)">[자산취득비]</span></td><td>500천원×3대(참여율50%+6개월↑)</td><td>1대</td><td><b>${fmt(PC_COST)}</b></td><td style="font-size:11px;color:var(--purple)">신규인력, 조건충족</td></tr>`;
+    });
+  }
+  BIMOKS.forEach(bm=>{
+    const oR=(S.composed[bm]||[]).filter(r=>r.on);if(!oR.length)return;
+    let bs=0;
+    oR.forEach(r=>{
+      const it=r.item;const qL=it.pm?`${tm}개월`:it.sp?'1식':`${r.qty}`;bs+=r.finalAmt;
+      h+=`<tr><td style="font-size:11px;color:var(--text2)">${bm}</td>
+        <td>${it.n}${r.absorb?'<span class="tag absorb" style="margin-left:3px">차액흡수</span>':''}${it.needPlan?'<span class="tag warn" style="margin-left:3px">활용계획서</span>':''}${it.yr&&it.yr!=='both'?`<span class="tag warn" style="margin-left:3px">${it.yr}차</span>`:''}<br><span style="font-size:10px;color:var(--text3)">[${it.cat}]</span></td>
+        <td style="font-size:11px">${it.desc}${it.pm?` × ${tm}개월`:''}</td><td>${qL}</td>
+        <td><b>${fmt(r.finalAmt)}</b>${r.absorb&&r.rawAmt!==r.finalAmt?`<br><span style="font-size:10px;text-decoration:line-through;color:var(--text3)">${fmt(r.rawAmt)}</span>`:''}</td>
+        <td style="font-size:11px;color:var(--text3)">${r.absorb?'차액흡수':'기준가'}</td></tr>`;
+    });
+    h+=`<tr class="brow"><td colspan="4">${bm} 소계</td><td><b>${fmt(bs+(bm==='유형자산'?pcT:0))}</b></td><td></td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
   document.getElementById('finalOut').innerHTML=h;
 }
-function swT(idx,d,c){c.querySelectorAll('.ytab').forEach((el,i)=>el.style.display=i===idx?'block':'none');c.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',i===idx));}
 
-// ★ 엑셀 다운로드 함수
+// ── 엑셀 다운로드 ──────────────────────────────────────────────────────────
 function downloadExcel(){
-  if(typeof XLSX==='undefined'){alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
+  if(typeof XLSX==='undefined'){alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
   const wb=XLSX.utils.book_new();
-  const tm=getTM();
-  const gt=S.gov+S.pC+S.pG;
-  const lr=S.labor;
+  const tm=getTM(),govT=S.govTotal,lr=S.labor;
+  const ratio=ORG_RATIO[S.orgType];
+  const minPriv=Math.ceil(govT/ratio.govMax*(1-ratio.govMax));
+  const minPrivCash=Math.ceil(minPriv*ratio.cashMin);
+  const nhCash=S.nhLabor.totCash,pcT=S.nhLabor.pcCost;
+  let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
+  const laborTotal=lr.totTotal+nhCash;
+  const bmd={인건비:{total:laborTotal,A:lr.totCash+nhCash,cash:0,goods:lr.totGoods}};
+  BIMOKS.forEach(bm=>{const tot=bmT[bm]+(bm==='유형자산'?pcT:0);bmd[bm]={total:tot,A:Math.floor(tot*0.78),cash:Math.floor(tot*0.05),goods:tot-Math.floor(tot*0.78)-Math.floor(tot*0.05)};});
+  const gT=Object.values(bmd).reduce((a,t)=>a+t.total,0);
+  const gA=Object.values(bmd).reduce((a,t)=>a+t.A,0);
+  const gC=Object.values(bmd).reduce((a,t)=>a+(t.cash||0),0);
+  const gG=Object.values(bmd).reduce((a,t)=>a+t.goods,0);
 
-  // 비목별 최종 금액
-  const bmd={인건비:{total:lr.totTotal,A:lr.totCash,cash:0,goods:lr.totGoods}};
-  BIMOKS.forEach(bm=>{const tot=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);bmd[bm]={total:tot,A:Math.floor(tot*0.75),cash:Math.floor(tot*0.05),goods:tot-Math.floor(tot*0.75)-Math.floor(tot*0.05)};});
-  const gT=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].total,0);
-  const gA=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].A,0);
-  const gC=['인건비',...BIMOKS].reduce((a,bm)=>a+(bmd[bm].cash||0),0);
-  const gG=['인건비',...BIMOKS].reduce((a,bm)=>a+bmd[bm].goods,0);
-
-  // ── 시트1: 총괄표 ──
-  const s1=[
-    ['사업비 총괄표 (단위: 천원)'],
-    [],
-    ['비목','정부출연금(A)','민간현금','민간현물','소계(B)','합계(A+B)','구성비(%)'],
-  ];
-  ['인건비',...BIMOKS].forEach(bm=>{
-    const t=bmd[bm];
-    s1.push([bm, n(t.A), n(t.cash||0), n(t.goods), n((t.cash||0)+t.goods), n(t.total), gT>0?+(t.total/gT*100).toFixed(1):0]);
-  });
-  s1.push(['합  계', n(gA), n(gC), n(gG), n(gC+gG), n(gT), 100]);
-  s1.push([]);
-  s1.push(['입력 총 사업비', n(gt), '', '', '', '', '']);
-  s1.push(['산출 합산액', n(gT), '', '', '', '', '']);
-  s1.push(['차이', n(gT-gt), '', '', '', '', '']);
-  const ws1=XLSX.utils.aoa_to_sheet(s1);
-  ws1['!cols']=[{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:14},{wch:10}];
+  // 시트1: 총괄표
+  const s1=[['사업비 총괄표 (단위: 천원)','','','','','',''],[''],['비목','정부출연금(A)','민간현금','민간현물','소계(B)','합계(A+B)','구성비(%)']];
+  ['인건비',...BIMOKS].forEach(bm=>{const t=bmd[bm];if(!t)return;s1.push([bm,N(t.A),N(t.cash||0),N(t.goods),N((t.cash||0)+t.goods),N(t.total),gT>0?+(t.total/gT*100).toFixed(1):0]);});
+  s1.push(['합  계',N(gA),N(gC),N(gG),N(gC+gG),N(gT),100]);
+  s1.push([''],['정부지원금',N(govT)],['민간현금 최소',N(minPrivCash)],['민간현물(인건비현물)',N(lr.totGoods)]);
+  const ws1=XLSX.utils.aoa_to_sheet(s1);ws1['!cols']=[{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:14},{wch:10}];
   XLSX.utils.book_append_sheet(wb,ws1,'①총괄표');
 
-  // ── 시트2: 인건비 세부 ──
+  // 시트2: 인건비 세부
   const s2=[['인건비 세부 산출내역 (단위: 천원)'],[]];
-  lr.years.forEach(y=>{
-    s2.push([`${y.yr}년 (${y.m}개월 적용)`]);
-    s2.push(['성명/직위','구분','연봉(천원)','참여율(%)','참여월','산출식','인건비(천원)','현금/현물','비고']);
-    y.rows.forEach(({p,r,m,amt})=>{
-      if(!r){s2.push([p.name,'','','','','미참여','',p.ct,p.note]);return;}
-      s2.push([p.name, p.type==='existing'?'기존':'신규', n(p.sal), r, m, `${p.sal}÷12×${m}×${r}%`, n(amt), p.ct, p.note]);
-    });
-    s2.push(['합계','','','','','', n(y.tot),'','']);
-    s2.push([]);
+  lr.years.forEach((y,yi)=>{
+    s2.push([`${y.yr}년 (${y.m}개월 적용)`]);s2.push(['성명/직위','구분','연봉','참여율(%)','참여월','산출식','인건비','현금/현물','비고']);
+    y.rows.forEach(({p,r,m,amt})=>{if(!r){s2.push([p.name,'기존','','','','미참여','','현물','기존인력']);return;}s2.push([p.name,'기존',N(p.sal),r,m,`${p.sal}÷12×${m}×${r}%`,N(amt),'현물',p.note]);});
+    // 신규인력
+    S.newHires.forEach(p=>{const r=yi===0?p.r1:p.r2;const m=yi===0?(p.m1||getM(0)):getM(1);if(!r||!m)return;const amt=Math.floor(p.sal/12*m*r/100);s2.push([p.name,'신규(고용창출)',N(p.sal),r,m,`${p.sal}÷12×${m}×${r}%`,N(amt),'현금','신규채용·고용창출']);});
+    s2.push(['합계','','','','','',N(y.tot),'','']);s2.push([]);
   });
-  // 전체 인건비 합계
-  s2.push(['전체 인건비 합계','','','','','', n(lr.totTotal),'','']);
-  s2.push(['  현금(출연금)','','','','','', n(lr.totCash),'','']);
-  s2.push(['  현물(민간부담금)','','','','','', n(lr.totGoods),'','']);
-  const ws2=XLSX.utils.aoa_to_sheet(s2);
-  ws2['!cols']=[{wch:18},{wch:8},{wch:12},{wch:10},{wch:8},{wch:22},{wch:14},{wch:10},{wch:10}];
+  s2.push(['전체 인건비 합계','','','','','',N(laborTotal),'','']);
+  const ws2=XLSX.utils.aoa_to_sheet(s2);ws2['!cols']=[{wch:18},{wch:10},{wch:12},{wch:10},{wch:8},{wch:22},{wch:14},{wch:10},{wch:14}];
   XLSX.utils.book_append_sheet(wb,ws2,'②인건비세부');
 
-  // ── 시트3: 세부 항목 ──
-  const s3=[['세부 항목 산출내역 (단위: 천원)'],[]];
-  s3.push(['비목','세목','항목명','산출근거','수량','단가(천원)','금액(천원)','비고']);
-  BIMOKS.forEach(bm=>{
-    const oR=(S.composed[bm]||[]).filter(r=>r.on);
-    if(!oR.length)return;
-    let bSum=0;
-    oR.forEach(r=>{
-      const it=r.item;
-      const qL=it.pm?`${tm}개월`:it.sp?'1식':`${r.qty}`;
-      const unitA=it.pm?Math.floor(r.finalAmt/tm):it.sp?r.finalAmt:Math.floor(r.finalAmt/(r.qty||1));
-      bSum+=r.finalAmt;
-      s3.push([bm, it.cat, it.n, it.desc+(it.pm?` × ${tm}개월`:''), qL, n(unitA), n(r.finalAmt), r.absorb?'차액흡수':'기준가']);
-    });
-    s3.push([`${bm} 소계`,'','','','','', n(bSum),'']);
-    s3.push([]);
-  });
-  const ws3=XLSX.utils.aoa_to_sheet(s3);
-  ws3['!cols']=[{wch:12},{wch:14},{wch:24},{wch:28},{wch:10},{wch:12},{wch:12},{wch:10}];
+  // 시트3: 세부 항목
+  const s3=[['세부 항목 산출내역 (단위: 천원)'],[]];s3.push(['비목','세목','항목명','산출근거','수량/기간','금액(천원)','비고']);
+  if(pcT>0){S.nhLabor.items.filter(x=>x.pc&&x.pcOk).forEach(it=>{s3.push(['유형자산','자산취득비',`${it.name||'신규인력'} 노트북`,'500천원×1대','1대',N(PC_COST),'신규인력 PC구매 (조건충족)']);});}
+  BIMOKS.forEach(bm=>{const oR=(S.composed[bm]||[]).filter(r=>r.on);if(!oR.length)return;let bs=0;oR.forEach(r=>{const it=r.item;const qL=it.pm?`${tm}개월`:it.sp?'1식':`${r.qty}`;bs+=r.finalAmt;s3.push([bm,it.cat,it.n,it.desc+(it.pm?` × ${tm}개월`:''),qL,N(r.finalAmt),r.absorb?'차액흡수':'기준가']);});s3.push([`${bm} 소계`,'','','','',N(bs+(bm==='유형자산'?pcT:0)),'']);s3.push([]);});
+  const ws3=XLSX.utils.aoa_to_sheet(s3);ws3['!cols']=[{wch:12},{wch:14},{wch:26},{wch:28},{wch:10},{wch:12},{wch:14}];
   XLSX.utils.book_append_sheet(wb,ws3,'③세부산출내역');
 
-  // 다운로드
-  const today=new Date();
-  const dateStr=`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
-  XLSX.writeFile(wb,`기금사업비_예산산출_${dateStr}.xlsx`);
+  // 시트4: 신규인력 고용창출 계획서
+  const s4=[['신규인력 고용창출 계획서 (AI 에이전트 서비스 개발 사업)'],[]];
+  s4.push(['성명/직위(예정)','예정연봉(천원)','담당업무','1차참여율','2차참여율','1차년도 인건비','2차년도 인건비','PC/노트북','비고']);
+  S.newHires.forEach((p,i)=>{
+    const amt1=Math.floor(p.sal/12*(p.m1||getM(0))*p.r1/100);const amt2=Math.floor(p.sal/12*getM(1)*p.r2/100);
+    const pcOk=(p.r1>=50&&(p.m1||getM(0))>=6)||(p.r2>=50&&getM(1)>=6);
+    s4.push([p.name||`신규인력${i+1}`,N(p.sal),'AI 에이전트 개발·운영',`${p.r1}%`,`${p.r2}%`,N(amt1),N(amt2),p.pc&&pcOk?`노트북 1대 (${PC_COST}천원)`:'해당없음','공고일 이후 채용']);
+  });
+  s4.push(['합계','','','','',N(S.nhLabor.totCash),'',N(pcT),'']);
+  const ws4=XLSX.utils.aoa_to_sheet(s4);ws4['!cols']=[{wch:18},{wch:14},{wch:22},{wch:10},{wch:10},{wch:16},{wch:16},{wch:18},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws4,'④고용창출계획');
+
+  const today=new Date();const ds=`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb,`기금사업비_예산산출_AI에이전트_${ds}.xlsx`);
 }
 
-function go(n){document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));document.querySelectorAll('.step-btn').forEach((b,i)=>{b.classList.remove('active','done');if(i===n)b.classList.add('active');else if(i<n)b.classList.add('done');});if(n===1)renderPList();if(n===2){s0();calcLabor();buildAllocPanel();}}
-s0();renderPList();calcLabor();buildAllocPanel();
+function swT(idx,d,c){c.querySelectorAll('.ytab').forEach((el,i)=>el.style.display=i===idx?'block':'none');c.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',i===idx));}
+
+function go(n){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>{b.classList.remove('active','done');if(i===n)b.classList.add('active');else if(i<n)b.classList.add('done');});
+  if(n===1)renderPList();
+  if(n===2){renderNHList();}
+  if(n===3){s0();buildAllocPanel();}
+}
+
+function go(n){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>{b.classList.remove('active','done');if(i===n)b.classList.add('active');else if(i<n)b.classList.add('done');});
+  if(n===1)renderPList();
+  if(n===2){renderNHList();}
+  if(n===3){s0();buildAllocPanel();}
+  if(n===7){renderMgmt(mgmtBimok);}
+}
+
+// ── ⚙ 항목 관리 ───────────────────────────────────────────────────────────
+let mgmtBimok='운영비';
+
+function renderMgmtTabs(){
+  const tabs=document.getElementById('mgmtTabs');
+  if(!tabs)return;
+  tabs.innerHTML=BIMOKS.map(bm=>`<button class="tab${bm===mgmtBimok?' on':''}" onclick="mgmtBimok='${bm}';renderMgmt('${bm}')">${bm} (${DB[bm].length})</button>`).join('');
+}
+
+function renderMgmt(bm){
+  mgmtBimok=bm;
+  renderMgmtTabs();
+  const items=DB[bm];
+  const catSet=[...new Set(items.map(x=>x.cat))];
+
+  let h=`<div class="card">
+  <div class="card-title" style="color:var(--purple)">📋 ${bm} 항목 목록 <span style="font-weight:400;font-size:11px;color:var(--text3)">— 항목명·단가·수량 등을 직접 수정하세요</span></div>`;
+
+  // 헤더
+  h+=`<div style="display:grid;grid-template-columns:18px 1.8fr 0.8fr 80px 55px 55px 55px 55px 60px 30px;gap:5px;padding:4px 8px;margin-bottom:4px">
+    <span style="font-size:10px;font-weight:600;color:var(--text3)"></span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3)">항목명</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3)">세목(cat)</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3)">산출근거</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:center">단가(천원)</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:center">기본수량</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:center">최소</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:center">최대</span>
+    <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:center">차수</span>
+    <span></span>
+  </div>`;
+
+  items.forEach((it,idx)=>{
+    const isCustom=!!it._custom;
+    h+=`<div style="display:grid;grid-template-columns:18px 1.8fr 0.8fr 80px 55px 55px 55px 55px 60px 30px;gap:5px;align-items:center;padding:6px 8px;background:${isCustom?'var(--purple-bg)':'var(--bg)'};border:1px solid ${isCustom?'var(--purple-bd)':'var(--border)'};border-radius:var(--r);margin-bottom:3px">
+      <span style="font-size:9px;color:${isCustom?'var(--purple)':'var(--text3)'};text-align:center">${isCustom?'✦':'·'}</span>
+      <input type="text" value="${it.n}" style="font-size:12px;font-weight:600;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" oninput="DB['${bm}'][${idx}].n=this.value" title="항목명">
+      <input type="text" value="${it.cat}" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" oninput="DB['${bm}'][${idx}].cat=this.value" title="세목">
+      <input type="text" value="${it.desc||''}" style="font-size:10px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%" oninput="DB['${bm}'][${idx}].desc=this.value" title="산출근거 설명">
+      <input type="number" value="${it.u}" min="0" step="100" style="font-size:12px;font-weight:700;padding:3px 5px;border:1px solid var(--blue-bd);border-radius:4px;background:var(--blue-bg);color:var(--blue);width:100%;text-align:right" oninput="DB['${bm}'][${idx}].u=+this.value" title="단가(천원)">
+      <input type="number" value="${it.qty}" min="1" step="1" style="font-size:12px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].qty=+this.value" title="기본 수량">
+      <input type="number" value="${it.min}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].min=+this.value" title="최소 수량">
+      <input type="number" value="${it.max}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].max=+this.value" title="최대 수량">
+      <select style="font-size:11px;padding:2px 3px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" onchange="DB['${bm}'][${idx}].yr=this.value" title="적용 차수">
+        <option value="both" ${it.yr==='both'?'selected':''}>1·2차</option>
+        <option value="1차" ${it.yr==='1차'?'selected':''}>1차만</option>
+        <option value="2차" ${it.yr==='2차'?'selected':''}>2차만</option>
+      </select>
+      <button class="del-btn" onclick="deleteMgmtItem('${bm}',${idx})" title="삭제" style="background:var(--red-bg);color:var(--red);border-color:var(--red-bd)">×</button>
+    </div>`;
+  });
+
+  h+=`</div>
+  <div class="note">💡 <b>단가(파란 칸)</b>를 직접 수정하세요. <b>×</b>로 항목 삭제, 아래 <b>+ 새 항목 추가</b>로 항목 추가. 변경은 ⑤ 항목 선택에 즉시 반영됩니다.<br>
+  ✦ 표시는 직접 추가한 항목입니다. 월별 자동 계산 항목(/월)은 <b>단가×총사업월수</b>로 자동 산정됩니다.</div>`;
+
+  document.getElementById('mgmtContent').innerHTML=h;
+}
+
+function deleteMgmtItem(bm, idx){
+  if(!confirm(`"${DB[bm][idx].n}" 항목을 삭제하시겠습니까?`))return;
+  DB[bm].splice(idx,1);
+  renderMgmt(bm);
+}
+
+// 새 항목 추가 모달
+function addMgmtItem(){
+  const bm=mgmtBimok;
+  // 기존 모달 제거
+  const old=document.getElementById('addItemModal');
+  if(old)old.remove();
+
+  const cats={
+    운영비:['일반수용비','공공요금','특근매식비','임차료','재료비','시설장비유지비','일반용역비'],
+    여비:['국내여비','국외여비'],
+    업무추진비:['사업추진비'],
+    연구용역비:['일반연구비'],
+    유형자산:['자산취득비'],
+  };
+  const catOptions=(cats[bm]||['기타']).map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  const modal=document.createElement('div');
+  modal.id='addItemModal';
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:12px;padding:24px 28px;width:520px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <div style="font-size:15px;font-weight:700;color:var(--purple);margin-bottom:16px">✦ 새 항목 추가 — ${bm}</div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="field"><label>항목명 *</label><input id="ni_name" type="text" placeholder="예: ChatGPT Plus 구독료"></div>
+        <div class="field"><label>세목(cat) *</label><select id="ni_cat">${catOptions}</select></div>
+      </div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="field"><label>단가 (천원) *</label><input id="ni_u" type="number" value="1000" min="0" step="100" style="border-color:var(--blue-bd)"></div>
+        <div class="field"><label>산출근거 설명</label><input id="ni_desc" type="text" placeholder="예: 20달러/월 × 환율"></div>
+      </div>
+      <div class="g4" style="margin-bottom:10px">
+        <div class="field"><label>기본 수량</label><input id="ni_qty" type="number" value="1" min="1"></div>
+        <div class="field"><label>최소 수량</label><input id="ni_min" type="number" value="1" min="1"></div>
+        <div class="field"><label>최대 수량</label><input id="ni_max" type="number" value="10" min="1"></div>
+        <div class="field"><label>적용 차수</label>
+          <select id="ni_yr"><option value="both">1·2차</option><option value="1차">1차만</option><option value="2차">2차만</option></select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>월별 자동×월수 계산?</label>
+        <select id="ni_pm"><option value="N">아니오 (수량으로 계산)</option><option value="Y">예 (단가 × 총 사업 개월수)</option></select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="document.getElementById('addItemModal').remove()">취소</button>
+        <button class="btn" style="background:var(--purple);color:#fff;border:none" onclick="confirmAddItem('${bm}')">추가</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('ni_name').focus();
+}
+
+function confirmAddItem(bm){
+  const name=document.getElementById('ni_name').value.trim();
+  if(!name){alert('항목명을 입력해주세요.');return;}
+  const u=+document.getElementById('ni_u').value||0;
+  const desc=document.getElementById('ni_desc').value.trim();
+  const qty=+document.getElementById('ni_qty').value||1;
+  const min=+document.getElementById('ni_min').value||1;
+  const max=+document.getElementById('ni_max').value||10;
+  const yr=document.getElementById('ni_yr').value;
+  const pm=document.getElementById('ni_pm').value==='Y';
+  const cat=document.getElementById('ni_cat').value;
+
+  const newId=bm.slice(0,1)+'_c'+Date.now();
+  DB[bm].push({id:newId,n:name,cat,desc,u,pm,qty,min,max,yr,_custom:true});
+
+  document.getElementById('addItemModal').remove();
+  renderMgmt(bm);
+}
+
+// 초기화
+s0();renderPList();renderNHList();renderMgmtTabs();
 </script>
 </body>
 </html>
