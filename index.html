@@ -1064,7 +1064,7 @@ function renderMgmt(bm){
       <input type="text" value="${it.n}" style="font-size:12px;font-weight:600;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" oninput="DB['${bm}'][${idx}].n=this.value" title="항목명">
       <input type="text" value="${it.cat}" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" oninput="DB['${bm}'][${idx}].cat=this.value" title="세목">
       <input type="text" value="${it.desc||''}" style="font-size:10px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%" oninput="DB['${bm}'][${idx}].desc=this.value" title="산출근거 설명">
-      <input type="number" value="${it.u}" min="0" step="100" style="font-size:12px;font-weight:700;padding:3px 5px;border:1px solid var(--blue-bd);border-radius:4px;background:var(--blue-bg);color:var(--blue);width:100%;text-align:right" oninput="DB['${bm}'][${idx}].u=+this.value" title="단가(천원)">
+      <input type="number" value="${it.u}" min="0" step="100" style="font-size:12px;font-weight:700;padding:3px 5px;border:1px solid var(--blue-bd);border-radius:4px;background:var(--blue-bg);color:var(--blue);width:100%;text-align:right" oninput="updateItemUnit('${bm}',${idx},+this.value)" title="단가(천원)">
       <input type="number" value="${it.qty}" min="1" step="1" style="font-size:12px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].qty=+this.value" title="기본 수량">
       <input type="number" value="${it.min}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].min=+this.value" title="최소 수량">
       <input type="number" value="${it.max}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].max=+this.value" title="최대 수량">
@@ -1169,7 +1169,7 @@ s0();renderPList();renderNHList();renderMgmtTabs();
 //   2. 내용에 {} 입력 후 Create 클릭
 //   3. 생성된 Bin ID와 API key를 아래에 입력
 const JSONBIN_BIN_ID  = '69c333c6b7ec241ddc9dbd88';   // 예: 683a1f2e8960c979a5a5b7de
-const JSONBIN_API_KEY = '$2a$10$vAinKWtGmu4yCy9O5t8wJOPTIHKxnhKvGcqE7N2hsWBZvyodoAcfO';   // 예: $2a$10$...
+const JSONBIN_API_KEY = '$2a$10$vAinKWtGmu4yCy9O5t8wJOPTIHKxnhKvGcqE7N2hsWBZvyodoAcfO';
 
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const JSONBIN_HEADERS = {
@@ -1215,20 +1215,23 @@ async function loadDBRemote(showMsg=true){
   if(btn){ btn.disabled=true; btn.textContent='불러오는 중…'; }
   try{
     const res = await fetch(JSONBIN_URL+'/latest', { headers: JSONBIN_HEADERS });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    if(!res.ok) throw new Error('HTTP '+res.status);
     const json = await res.json();
-    if(json.record && json.record.db){
-      const remote = json.record.db;
-      // 비목별로 원격 데이터로 교체 (새로 추가된 기본 항목은 유지)
+    const remote = json.record && json.record.db;
+    if(remote && Object.keys(remote).length > 0){
+      // 원격 DB로 전체 교체 (단가·desc·수량 등 모든 필드 포함)
       BIMOKS.forEach(bm=>{
         if(remote[bm]) DB[bm] = remote[bm];
       });
       renderMgmt(mgmtBimok);
       renderMgmtTabs();
       const at = json.record.savedAt ? new Date(json.record.savedAt).toLocaleString('ko-KR') : '';
-      if(showMsg) showDbStatus(`✅ 불러오기 완료${at?' (저장: '+at+')':''}`, 'green');
+      if(showMsg) showDbStatus('✅ 불러오기 완료'+(at?' (저장: '+at+')':''), 'green');
     } else {
-      if(showMsg) showDbStatus('ℹ 저장된 데이터가 없습니다 (현재 기본값 사용 중)', 'amber');
+      // 원격에 데이터 없으면 → 현재 기본 DB를 자동으로 업로드
+      if(showMsg) showDbStatus('ℹ 저장된 데이터 없음 → 기본 DB를 자동 저장합니다…', 'amber');
+      await saveDBRemote(true);
+      if(showMsg) showDbStatus('✅ 기본 DB가 저장되었습니다. 이제 수정 후 저장하면 팀원에게 반영됩니다.', 'green');
     }
   }catch(e){
     if(showMsg) showDbStatus('❌ 불러오기 실패: '+e.message, 'red');
@@ -1247,12 +1250,23 @@ function showDbStatus(msg, color){
   setTimeout(()=>{ el.textContent=''; }, 5000);
 }
 
-// 페이지 로드 시 자동 불러오기
+// 페이지 로드 시 자동 불러오기 (원격 DB 없으면 기본 DB 자동 저장)
 window.addEventListener('DOMContentLoaded', ()=>{
   if(JSONBIN_BIN_ID!=='YOUR_BIN_ID_HERE'){
     loadDBRemote(false);
   }
 });
+
+// ── 항목 관리에서 단가 수정 시 desc도 자동 업데이트 ──────────────────────
+// desc가 "숫자천원/..." 패턴이면 단가 변경 시 자동 반영
+function updateItemUnit(bm, idx, newU){
+  const it = DB[bm][idx];
+  it.u = newU;
+  // desc에서 숫자+천원 패턴을 새 단가로 자동 교체
+  if(it.desc){
+    it.desc = it.desc.replace(/^[\d,]+천원/, newU.toLocaleString()+'천원');
+  }
+}
 </script>
 </body>
 </html>
