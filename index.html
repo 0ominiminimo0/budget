@@ -1329,6 +1329,10 @@ function addPrivGoods(){
 s0();renderPList();renderNHList();renderMgmtTabs();
 
 // ── ☁ JSONBin DB 저장/불러오기 ───────────────────────────────────────────
+// ▶ 사용 방법:
+//   1. https://jsonbin.io 에서 "Create New Bin" 버튼 클릭 (무료, 가입 불필요)
+//   2. 내용에 {} 입력 후 Create 클릭
+//   3. 생성된 Bin ID와 API key를 아래에 입력
 const JSONBIN_BIN_ID  = '69c333c6b7ec241ddc9dbd88';   // 예: 683a1f2e8960c979a5a5b7de
 const JSONBIN_API_KEY = '$2a$10$vAinKWtGmu4yCy9O5t8wJOPTIHKxnhKvGcqE7N2hsWBZvyodoAcfO';
 
@@ -1353,7 +1357,7 @@ async function saveDBRemote(silent=false){
     const res = await fetch(JSONBIN_URL, {
       method:'PUT',
       headers: JSONBIN_HEADERS,
-      body: JSON.stringify({db: DB, savedAt: new Date().toISOString()})
+      body: JSON.stringify({db: DB, privGoodsItems: S.privGoodsItems||[], savedAt: new Date().toISOString()})
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     if(!silent){
@@ -1384,8 +1388,11 @@ async function loadDBRemote(showMsg=true){
       BIMOKS.forEach(bm=>{
         if(remote[bm]) DB[bm] = remote[bm];
       });
+      if(json.record.privGoodsItems) S.privGoodsItems = json.record.privGoodsItems;
       renderMgmt(mgmtBimok);
       renderMgmtTabs();
+      renderPrivGoods();
+      renderPrivGoodsSummary();
       const at = json.record.savedAt ? new Date(json.record.savedAt).toLocaleString('ko-KR') : '';
       if(showMsg) showDbStatus('✅ 불러오기 완료'+(at?' (저장: '+at+')':''), 'green');
     } else {
