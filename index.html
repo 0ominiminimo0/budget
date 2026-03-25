@@ -271,12 +271,29 @@ input[type=range]{width:100%;accent-color:var(--blue)}
   <div class="alert" style="background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple)">
     ✏️ <b>항목 관리:</b> 세부 항목의 가격(단가)을 수정하거나 새 항목을 추가할 수 있습니다. 변경사항은 즉시 ⑤ 항목 선택에 반영됩니다.
   </div>
+  <!-- DB 저장/불러오기 카드 -->
+  <div class="card" style="background:var(--blue-bg);border-color:var(--blue-bd);margin-bottom:14px">
+    <div class="card-title" style="color:var(--blue)">☁ 팀 공유 DB (JSONBin)</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button id="dbLoadBtn" class="btn btn-outline" onclick="loadDBRemote(true)" style="border-color:var(--blue-bd);color:var(--blue)">🔄 DB 불러오기</button>
+      <button id="dbSaveBtn" class="btn btn-primary" onclick="saveDBRemote(false)">💾 DB 저장</button>
+      <span id="dbStatusMsg" style="font-size:12px;font-weight:600;flex:1"></span>
+    </div>
+    <p class="note" style="margin-top:8px">
+      💡 <b>처음 사용 시:</b> <a href="https://jsonbin.io" target="_blank" style="color:var(--blue)">jsonbin.io</a>에서 무료 Bin을 생성하고 HTML 파일의 <code>JSONBIN_BIN_ID</code>와 <code>JSONBIN_API_KEY</code>를 채워주세요.<br>
+      항목 수정 후 <b>💾 DB 저장</b>을 누르면 팀원 모두에게 반영됩니다. 페이지 로드 시 자동으로 최신 DB를 불러옵니다.
+    </p>
+  </div>
+
   <div class="slabel">비목 선택</div>
   <div class="tab-row" id="mgmtTabs"></div>
   <div id="mgmtContent"></div>
   <div class="nav-row">
     <button class="btn btn-outline" onclick="go(4)">← 항목 선택으로</button>
-    <button class="btn" style="background:var(--purple);color:#fff;border:none" onclick="addMgmtItem()">+ 새 항목 추가</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" onclick="saveDBRemote(false)" style="border-color:var(--blue-bd);color:var(--blue)">💾 변경사항 저장</button>
+      <button class="btn" style="background:var(--purple);color:#fff;border:none" onclick="addMgmtItem()">+ 새 항목 추가</button>
+    </div>
   </div>
 </div>
 
@@ -1145,6 +1162,97 @@ function confirmAddItem(bm){
 
 // 초기화
 s0();renderPList();renderNHList();renderMgmtTabs();
+
+// ── ☁ JSONBin DB 저장/불러오기 ───────────────────────────────────────────
+// ▶ 사용 방법:
+//   1. https://jsonbin.io 에서 "Create New Bin" 버튼 클릭 (무료, 가입 불필요)
+//   2. 내용에 {} 입력 후 Create 클릭
+//   3. 생성된 Bin ID와 API key를 아래에 입력
+const JSONBIN_BIN_ID  = '69c333c6b7ec241ddc9dbd88';   // 예: 683a1f2e8960c979a5a5b7de
+const JSONBIN_API_KEY = '$2a$10$C.HrIskuJlrG5cbwAkPQ.eIvPfOMj8r0uN5S0a5rMKHytrZcyoVAW';   // 예: $2a$10$...
+
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+const JSONBIN_HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Master-Key': JSONBIN_API_KEY,
+  'X-Bin-Versioning': 'false'   // 버전 저장 비활성화 (용량 절약)
+};
+
+let dbSaveTimer = null;
+
+// DB → JSONBin 저장
+async function saveDBRemote(silent=false){
+  if(JSONBIN_BIN_ID==='YOUR_BIN_ID_HERE'){
+    if(!silent) alert('⚙ JSONBin 설정이 필요합니다.\nHTML 파일의 JSONBIN_BIN_ID와 JSONBIN_API_KEY를 입력해주세요.');
+    return;
+  }
+  const btn = document.getElementById('dbSaveBtn');
+  if(btn){ btn.disabled=true; btn.textContent='저장 중…'; }
+  try{
+    const res = await fetch(JSONBIN_URL, {
+      method:'PUT',
+      headers: JSONBIN_HEADERS,
+      body: JSON.stringify({db: DB, savedAt: new Date().toISOString()})
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    if(!silent){
+      showDbStatus('✅ 저장 완료! 팀원들이 새로고침하면 반영됩니다.', 'green');
+    }
+  }catch(e){
+    showDbStatus('❌ 저장 실패: '+e.message, 'red');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='💾 DB 저장'; }
+  }
+}
+
+// JSONBin → DB 불러오기
+async function loadDBRemote(showMsg=true){
+  if(JSONBIN_BIN_ID==='YOUR_BIN_ID_HERE'){
+    if(showMsg) showDbStatus('⚙ JSONBin 설정 필요 — HTML 파일을 편집하세요', 'amber');
+    return;
+  }
+  const btn = document.getElementById('dbLoadBtn');
+  if(btn){ btn.disabled=true; btn.textContent='불러오는 중…'; }
+  try{
+    const res = await fetch(JSONBIN_URL+'/latest', { headers: JSONBIN_HEADERS });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if(json.record && json.record.db){
+      const remote = json.record.db;
+      // 비목별로 원격 데이터로 교체 (새로 추가된 기본 항목은 유지)
+      BIMOKS.forEach(bm=>{
+        if(remote[bm]) DB[bm] = remote[bm];
+      });
+      renderMgmt(mgmtBimok);
+      renderMgmtTabs();
+      const at = json.record.savedAt ? new Date(json.record.savedAt).toLocaleString('ko-KR') : '';
+      if(showMsg) showDbStatus(`✅ 불러오기 완료${at?' (저장: '+at+')':''}`, 'green');
+    } else {
+      if(showMsg) showDbStatus('ℹ 저장된 데이터가 없습니다 (현재 기본값 사용 중)', 'amber');
+    }
+  }catch(e){
+    if(showMsg) showDbStatus('❌ 불러오기 실패: '+e.message, 'red');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🔄 DB 불러오기'; }
+  }
+}
+
+// 상태 메시지 표시
+function showDbStatus(msg, color){
+  const el = document.getElementById('dbStatusMsg');
+  if(!el) return;
+  const colors = {green:'var(--green)',red:'var(--red)',amber:'var(--amber)',blue:'var(--blue)'};
+  el.style.color = colors[color]||colors.green;
+  el.textContent = msg;
+  setTimeout(()=>{ el.textContent=''; }, 5000);
+}
+
+// 페이지 로드 시 자동 불러오기
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(JSONBIN_BIN_ID!=='YOUR_BIN_ID_HERE'){
+    loadDBRemote(false);
+  }
+});
 </script>
 </body>
 </html>
