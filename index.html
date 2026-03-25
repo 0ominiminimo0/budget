@@ -146,6 +146,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 <div class="step-nav">
   <button class="step-btn active" onclick="go(0)">① 예산 설정</button>
   <button class="step-btn" onclick="go(1)">② 인건비 산정</button>
+  <button class="step-btn" onclick="go(8)" style="color:var(--green)">② 현물 입력</button>
   <button class="step-btn" onclick="go(2)">③ 신규인력 고용창출</button>
   <button class="step-btn" onclick="go(3)">④ 비목 가이드</button>
   <button class="step-btn" onclick="go(4)">⑤ 항목 선택</button>
@@ -296,6 +297,37 @@ input[type=range]{width:100%;accent-color:var(--blue)}
     </div>
   </div>
 </div>
+
+<!-- ② 현물 입력 (p8) -->
+<div class="panel" id="p8">
+  <div class="alert" style="background:var(--green-bg);border-color:var(--green-bd);color:var(--green)">
+    🏢 <b>민간부담금 현물 입력:</b> 우리 회사가 제공하는 현물(장비·시설·소프트웨어 등)을 입력하세요.<br>
+    입력한 현물 합계가 민간부담금 최소액에서 차감되고, 나머지는 인건비 현물→현금 순으로 충당됩니다.
+  </div>
+  <div class="slabel">민간부담금 구조 요약</div>
+  <div id="privGoodsSummary" class="card"></div>
+  <div class="slabel">현물 항목 입력</div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1.5fr 2fr 130px 28px;gap:6px;padding:4px 8px;margin-bottom:4px">
+      <span style="font-size:10px;font-weight:600;color:var(--text3)">항목명</span>
+      <span style="font-size:10px;font-weight:600;color:var(--text3)">설명/내용</span>
+      <span style="font-size:10px;font-weight:600;color:var(--text3);text-align:right">금액 (천원)</span>
+      <span></span>
+    </div>
+    <div id="privGoodsList"></div>
+    <button class="add-btn" onclick="addPrivGoods()">+ 현물 항목 추가</button>
+    <p class="note" style="margin-top:10px">
+      ※ 현물로 인정되는 항목: 자체 보유 장비·서버, 사무공간, 소프트웨어 라이선스, 기존인력 인건비(② 인건비 탭에서 현물로 설정된 항목은 자동 포함)<br>
+      ※ 현금 및 상품권은 현물로 인정되지 않습니다.<br>
+      ※ 기존인력 인건비 현물은 ② 인건비 탭에서 관리하며 여기에 중복 입력하지 마세요.
+    </p>
+  </div>
+  <div class="nav-row">
+    <button class="btn btn-outline" onclick="go(1)">← 인건비 산정</button>
+    <button class="btn btn-primary" onclick="go(2)">다음 → 신규인력</button>
+  </div>
+</div>
+
 
 </div>
 <script>
@@ -458,6 +490,10 @@ let S={
   nhLabor:{totCash:0,totTotal:0,pcCost:0,items:[]},
   alloc:{운영비:15,여비:4,업무추진비:2,연구용역비:63,유형자산:11},
   composed:{},
+  privGoodsItems:[
+    {id:'pg1', name:'개발 서버 (보유장비)', desc:'자체 보유 GPU 서버', amt:20000},
+    {id:'pg2', name:'사무공간 임차 현물', desc:'사옥 공간 제공', amt:5000},
+  ],
 };
 
 const fmt=n=>Math.floor(n).toLocaleString();
@@ -497,7 +533,7 @@ function s0(){
   for(let i=0;i<2;i++) note+=`${S.sy+i}년 ${i===0?S.sm+'월':'1월'}~12월 → 적용 ${getM(i)}개월  `;
   note+=`\n정산수수료: ${fmt(auditFee(S.govTotal,S.consortium))}천원 (사업비 규모 기준${S.consortium>0?', 참여기관 가산 포함':''})`;
   document.getElementById('pNote').textContent=note;
-  document.getElementById('s0note').textContent=`※ 총 사업비는 정부지원금 ÷ ${(ratio.govMax*100).toFixed(0)}% 이상이어야 합니다. 민간부담금은 현물(인건비+유형자산) + 현금으로 구성됩니다.`;
+  document.getElementById('s0note').textContent=`※ 총 사업비는 정부지원금 ÷ ${(ratio.govMax*100).toFixed(0)}% 이상이어야 합니다. 민간부담금은 현물(인건비+직접입력) + 현금으로 구성됩니다. 현물은 [② 현물 입력] 탭에서 관리하세요.`;
 }
 
 // ── ② 인건비 ────────────────────────────────────────────────────────────
@@ -788,11 +824,13 @@ function buildValidation(){
   let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
   const bmSum=Object.values(bmT).reduce((a,v)=>a+v,0);
   const totalGovUsed=laborCash+pcT+bmSum;
-  // 민간부담금 = 현물(인건비 현물 + 유형자산 현물) + 현금
-  const privGoods=laborGoods; // 현물은 기존인력 인건비
-  const totalBusiness=govT+privGoods; // 최소 총사업비 (민간현금 미포함 시 최소값)
+  // 민간부담금 = 현물(인건비 현물 + 직접입력 현물) + 현금
+  const inputGoods=getPrivGoodsTotal();
+  const privGoods=laborGoods+inputGoods; // 현물 합계
+  const totalBusiness=govT+privGoods;
   const minPriv=Math.ceil(govT/ratio.govMax*(1-ratio.govMax));
   const minPrivCash=Math.ceil(minPriv*ratio.cashMin);
+  const ps=calcPrivStructure();
   // 유형자산 비율
   const assetAmt=(bmT['유형자산']||0)+pcT;
   const assetRatio=totalBusiness>0?assetAmt/totalBusiness:0;
@@ -806,7 +844,7 @@ function buildValidation(){
 
   const checks=[
     {title:'정부지원금 비율',val:`${(govT/totalBusiness*100).toFixed(1)}%`,limit:`${(ratio.govMax*100).toFixed(0)}% 이내`,ok:govT/totalBusiness<=ratio.govMax,sub:`정부지원금 ${fmt(govT)} / 총사업비 ${fmt(totalBusiness)}`},
-    {title:'민간부담금 현금 최소',val:`${fmt(minPrivCash)}천원 이상 필요`,limit:`민간부담금의 ${(ratio.cashMin*100).toFixed(0)}% 이상`,ok:true,sub:`협약 시 민간현금 통장에 ${fmt(minPrivCash)}천원 이상 확보 필요`},
+    {title:'민간부담금 현금 최소',val:`${fmt(ps.requiredCash)}천원 필요 / 인건비현금 ${fmt(ps.laborCash)}천원`,limit:`민간부담금의 ${(ratio.cashMin*100).toFixed(0)}% 이상`,ok:ps.isCashEnough,sub:`현물합계 ${fmt(ps.totalGoods)}천원 차감 후 남은 민간현금 의무: ${fmt(ps.requiredCash)}천원`},
     {title:'유형자산 한도 (10% 이내)',val:`${(assetRatio*100).toFixed(1)}% (${fmt(assetAmt)}천원)`,limit:`총사업비의 10% 이내`,ok:assetRatio<=0.10,sub:`유형자산 ${fmt(bmT['유형자산']||0)} + 신규PC ${fmt(pcT)} = ${fmt(assetAmt)}천원`},
     {title:'사업추진비 한도 (2% 이내)',val:`${(bizRatio*100).toFixed(1)}% (${fmt(bizAmt)}천원)`,limit:`총사업비의 2% 이내`,ok:bizRatio<=0.02,sub:`외부기관 참석자 없는 회의비 불인정`},
     {title:'정산위탁수수료 산정',val:`${fmt(auditAmt)}천원 편성`,limit:`${fmt(auditRequired)}천원 이상 필요`,ok:auditAmt>=auditRequired,sub:`사업비 규모 기준${S.consortium>0?', 참여기관 가산':''}`},
@@ -845,9 +883,11 @@ function buildValidation(){
 function buildFinal(){
   const govT=S.govTotal,lr=S.labor,d=2,sy=S.sy,tm=getTM();
   const ratio=ORG_RATIO[S.orgType];
-  const privGoods=lr.totGoods;
+  const ps=calcPrivStructure();
+  const inputGoods=getPrivGoodsTotal();
+  const privGoods=lr.totGoods+inputGoods;
   const minPriv=Math.ceil(govT/ratio.govMax*(1-ratio.govMax));
-  const minPrivCash=Math.ceil(minPriv*ratio.cashMin);
+  const minPrivCash=ps.requiredCash;
   // 비목 합산
   let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
   // 신규인력 항목 인건비는 운영비가 아닌 인건비에 포함
@@ -862,7 +902,7 @@ function buildFinal(){
 
   // 비목 구조 (출연금:민간현금:민간현물 = 75:5:20 근사)
   const bmd={
-    인건비:{total:laborTotal,A:laborA,cash:0,goods:laborGoods},
+    인건비:{total:laborTotal,A:ps.laborCashForGov+laborGoods,cash:ps.laborCashForPriv,goods:laborGoods},
   };
   BIMOKS.forEach(bm=>{
     const tot=bmT[bm]+(bm==='유형자산'?pcT:0);
@@ -877,9 +917,16 @@ function buildFinal(){
   let h=`<div class="g4" style="margin-bottom:14px">
     <div class="sc blue"><div class="lbl">총 사업비</div><div class="val">${fmt(gT)}</div><div class="sub">천원</div></div>
     <div class="sc"><div class="lbl">정부지원금</div><div class="val">${fmt(govT)}</div><div class="sub">천원</div></div>
-    <div class="sc"><div class="lbl">민간현금 (최소)</div><div class="val">${fmt(minPrivCash)}</div><div class="sub">천원 이상</div></div>
-    <div class="sc"><div class="lbl">민간현물</div><div class="val">${fmt(laborGoods)}</div><div class="sub">천원</div></div>
-  </div>`;
+    <div class="sc amber"><div class="lbl">민간현금 의무</div><div class="val">${fmt(ps.requiredCash)}</div><div class="sub">천원 이상 (인건비현금으로 충당)</div></div>
+    <div class="sc green"><div class="lbl">민간현물 합계</div><div class="val">${fmt(ps.totalGoods)}</div><div class="sub">인건비 ${fmt(ps.laborGoods)} + 직접입력 ${fmt(ps.inputGoods)}천원</div></div>
+  </div>
+  ${ps.inputGoods>0?`<div class="card" style="background:var(--green-bg);border-color:var(--green-bd);margin-bottom:14px">
+    <div class="card-title" style="color:var(--green)">🏢 직접 입력 현물 목록</div>
+    <table class="ftbl"><thead><tr><th style="text-align:left">항목명</th><th style="text-align:left">설명</th><th>금액(천원)</th></tr></thead><tbody>
+    ${(S.privGoodsItems||[]).filter(x=>x.amt>0).map(x=>`<tr><td style="font-weight:600">${x.name}</td><td style="font-size:11px;color:var(--text2)">${x.desc||''}</td><td><b>${fmt(x.amt)}</b></td></tr>`).join('')}
+    <tr class="brow"><td colspan="2">직접입력 현물 소계</td><td><b>${fmt(ps.inputGoods)}</b></td></tr>
+    </tbody></table>
+  </div>`:''}`;
 
   // 총괄표
   h+=`<div class="card"><div class="card-title">총괄표 (단위: 천원)</div>
@@ -1014,14 +1061,35 @@ function go(n){
   if(n===1)renderPList();
   if(n===2){renderNHList();}
   if(n===3){s0();buildAllocPanel();}
+  if(n===8){renderPrivGoods();renderPrivGoodsSummary();}
 }
 
 function go(n){
-  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
-  document.querySelectorAll('.step-btn').forEach((b,i)=>{b.classList.remove('active','done');if(i===n)b.classList.add('active');else if(i<n)b.classList.add('done');});
+  // p8은 특수 패널 (인덱스 8 = panel id p8)
+  const panels=document.querySelectorAll('.panel');
+  panels.forEach((p,i)=>p.classList.remove('active'));
+  const stepBtns=document.querySelectorAll('.step-btn');
+  stepBtns.forEach(b=>b.classList.remove('active','done'));
+  if(n===8){
+    document.getElementById('p8').classList.add('active');
+    stepBtns.forEach((b,i)=>{ if(b.getAttribute('onclick')==="go(8)") b.classList.add('active'); });
+    renderPrivGoods(); renderPrivGoodsSummary();
+    return;
+  }
+  panels.forEach((p,i)=>{ if(i===n) p.classList.add('active'); });
+  stepBtns.forEach((b,i)=>{
+    const onclick=b.getAttribute('onclick');
+    if(onclick===`go(${n})`) b.classList.add('active');
+    else {
+      // done 처리: 일반 탭(0~7)만
+      const m=onclick&&onclick.match(/go\((\d+)\)/);
+      if(m && +m[1]<n && +m[1]!==8) b.classList.add('done');
+    }
+  });
   if(n===1)renderPList();
   if(n===2){renderNHList();}
   if(n===3){s0();buildAllocPanel();}
+  if(n===8){renderPrivGoods();renderPrivGoodsSummary();}
   if(n===7){renderMgmt(mgmtBimok);}
 }
 
@@ -1160,14 +1228,107 @@ function confirmAddItem(bm){
   renderMgmt(bm);
 }
 
+// ── 민간부담금 현물 함수들 ────────────────────────────────────────────────
+
+function getPrivGoodsTotal(){
+  return (S.privGoodsItems||[]).reduce((a,x)=>a+(+x.amt||0),0);
+}
+
+// 민간부담금 계산 핵심 로직
+function calcPrivStructure(){
+  const ratio=ORG_RATIO[S.orgType];
+  const govT=S.govTotal;
+  const minTotal=Math.ceil(govT/ratio.govMax);
+  const minPriv=minTotal-govT; // 민간부담금 최소 합계
+  const minPrivCash=Math.ceil(minPriv*ratio.cashMin); // 민간현금 최소
+
+  // 제공 현물: 기존인력 인건비 현물 + 직접 입력 현물
+  const laborGoods=S.labor.totGoods||0;
+  const inputGoods=getPrivGoodsTotal();
+  const totalGoods=laborGoods+inputGoods;
+
+  // 남은 민간부담금 = 민간부담금 최소 - 총현물
+  const remainPriv=Math.max(0, minPriv-totalGoods);
+  // 민간현금 최소는 무조건 확보 필요
+  const requiredCash=Math.max(minPrivCash, remainPriv>0?remainPriv:0);
+
+  // 인건비 중 현금 부분이 민간현금 의무 충당
+  const laborCash=(S.labor.totCash||0)+(S.nhLabor?S.nhLabor.totCash:0);
+  // 인건비 현금으로 민간현금 충당 후 남은 부분 → 정부출연금(현금)으로 전환
+  const laborCashForPriv=Math.min(laborCash, requiredCash);
+  const laborCashForGov=laborCash-laborCashForPriv;
+
+  return {
+    govT, minTotal, minPriv, minPrivCash,
+    laborGoods, inputGoods, totalGoods,
+    remainPriv, requiredCash,
+    laborCash, laborCashForPriv, laborCashForGov,
+    isGoodsEnough: totalGoods>=minPriv,
+    isCashEnough: laborCash>=requiredCash,
+  };
+}
+
+function renderPrivGoodsSummary(){
+  const p=calcPrivStructure();
+  const el=document.getElementById('privGoodsSummary');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="g4" style="margin-bottom:12px">
+      <div class="sc blue"><div class="lbl">민간부담금 최소 합계</div><div class="val">${fmt(p.minPriv)}</div><div class="sub">천원 이상 필요</div></div>
+      <div class="sc green"><div class="lbl">현물 합계</div><div class="val">${fmt(p.totalGoods)}</div><div class="sub">인건비현물 ${fmt(p.laborGoods)} + 직접입력 ${fmt(p.inputGoods)}</div></div>
+      <div class="sc ${p.isCashEnough?'':'red'}"><div class="lbl">민간현금 최소</div><div class="val">${fmt(p.minPrivCash)}</div><div class="sub">천원 이상 확보 필요</div></div>
+      <div class="sc ${p.isGoodsEnough&&p.isCashEnough?'green':'amber'}">
+        <div class="lbl">민간부담금 충족 여부</div>
+        <div class="val">${p.isGoodsEnough&&p.isCashEnough?'✅ 충족':'⚠ 검토필요'}</div>
+        <div class="sub">현물+현금 합계 ${fmt(p.totalGoods+p.requiredCash)}</div>
+      </div>
+    </div>
+    <div class="card" style="background:var(--bg);border:1px solid var(--border)">
+      <div class="card-title" style="font-size:12px">💡 민간부담금 충당 구조</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div>
+          <div style="font-weight:600;color:var(--text2);margin-bottom:6px">현물 (민간부담금)</div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>기존인력 인건비 현물</span><b>${fmt(p.laborGoods)}천원</b></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>직접 입력 현물</span><b>${fmt(p.inputGoods)}천원</b></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;color:var(--green)"><span>현물 소계</span><b>${fmt(p.totalGoods)}천원</b></div>
+        </div>
+        <div>
+          <div style="font-weight:600;color:var(--text2);margin-bottom:6px">인건비 현금 배분</div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>인건비 현금 총액</span><b>${fmt(p.laborCash)}천원</b></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--amber)">→ 민간현금 의무 충당</span><b style="color:var(--amber)">${fmt(p.laborCashForPriv)}천원</b></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:700;color:var(--blue)"><span>→ 정부출연금(현금)으로</span><b>${fmt(p.laborCashForGov)}천원</b></div>
+        </div>
+      </div>
+      ${!p.isCashEnough?`<div class="alert err" style="margin-top:10px">⚠ 인건비 현금(${fmt(p.laborCash)}천원)이 민간현금 최소(${fmt(p.requiredCash)}천원)에 미달합니다. 인건비 현금 인력을 추가하거나 현물을 늘려 민간현금 의무를 줄이세요.</div>`:''}
+    </div>`;
+}
+
+function renderPrivGoods(){
+  const list=document.getElementById('privGoodsList');
+  if(!list)return;
+  if(!S.privGoodsItems)S.privGoodsItems=[];
+  list.innerHTML=S.privGoodsItems.map((it,i)=>`
+    <div style="display:grid;grid-template-columns:1.5fr 2fr 130px 28px;gap:6px;align-items:center;background:var(--green-bg);border:1px solid var(--green-bd);border-radius:var(--r);padding:6px 8px;margin-bottom:4px">
+      <input type="text" value="${it.name}" placeholder="항목명 (예: 보유 GPU 서버)" style="font-size:12px;font-weight:600;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;width:100%"
+        oninput="S.privGoodsItems[${i}].name=this.value;renderPrivGoodsSummary()">
+      <input type="text" value="${it.desc||''}" placeholder="설명 (예: A100 80GB×4장)" style="font-size:12px;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;width:100%"
+        oninput="S.privGoodsItems[${i}].desc=this.value">
+      <input type="number" value="${it.amt}" min="0" step="100" style="font-size:13px;font-weight:700;padding:3px 8px;border:1px solid var(--green-bd);border-radius:4px;background:#fff;color:var(--green);width:100%;text-align:right"
+        oninput="S.privGoodsItems[${i}].amt=+this.value;renderPrivGoodsSummary()">
+      <button class="del-btn" onclick="S.privGoodsItems.splice(${i},1);renderPrivGoods();renderPrivGoodsSummary()">×</button>
+    </div>`).join('');
+}
+
+function addPrivGoods(){
+  if(!S.privGoodsItems)S.privGoodsItems=[];
+  S.privGoodsItems.push({id:'pg_'+Date.now(),name:'',desc:'',amt:0});
+  renderPrivGoods();
+}
+
 // 초기화
 s0();renderPList();renderNHList();renderMgmtTabs();
 
 // ── ☁ JSONBin DB 저장/불러오기 ───────────────────────────────────────────
-// ▶ 사용 방법:
-//   1. https://jsonbin.io 에서 "Create New Bin" 버튼 클릭 (무료, 가입 불필요)
-//   2. 내용에 {} 입력 후 Create 클릭
-//   3. 생성된 Bin ID와 API key를 아래에 입력
 const JSONBIN_BIN_ID  = '69c333c6b7ec241ddc9dbd88';   // 예: 683a1f2e8960c979a5a5b7de
 const JSONBIN_API_KEY = '$2a$10$vAinKWtGmu4yCy9O5t8wJOPTIHKxnhKvGcqE7N2hsWBZvyodoAcfO';
 
