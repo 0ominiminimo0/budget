@@ -179,10 +179,9 @@ input[type=range]{width:100%;accent-color:var(--blue)}
     </div>
     <div class="card" style="background:var(--blue-bg);border-color:var(--blue-bd);margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px">정부지원금 (확정 금액 — 직접 입력)</div>
-      <div class="g3">
-        <div class="field"><label>1차년도 정부지원금 (천원)</label><input type="number" id="gov1" value="580000" step="1000" oninput="s0()"></div>
-        <div class="field"><label>2차년도 정부지원금 (천원)</label><input type="number" id="gov2" value="580000" step="1000" oninput="s0()"></div>
-        <div class="field"><label>총 정부지원금 (천원)</label><input type="number" id="govTotal" value="1160000" step="1000" oninput="s0()" style="font-weight:700;color:var(--blue)"></div>
+      <div id="govInputs" style="display:grid;gap:8px;margin-bottom:8px"></div>
+      <div class="field"><label style="color:var(--blue);font-weight:700">총 정부지원금 (천원)</label>
+        <input type="number" id="govTotal" value="1160000" step="1000" oninput="syncGovTotal()" style="font-weight:700;color:var(--blue)">
       </div>
     </div>
     <div id="s0budget"></div>
@@ -191,12 +190,30 @@ input[type=range]{width:100%;accent-color:var(--blue)}
   </div>
   <div class="slabel">사업 기간</div>
   <div class="card">
-    <div class="g2" style="gap:12px">
-      <div class="field"><label>시작연도</label><select id="startYear"><option value="2026" selected>2026</option><option value="2027">2027</option></select></div>
-      <div class="field"><label>1차년도 시작월</label><select id="startMonth"><option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4" selected>4월</option><option value="5">5월</option><option value="6">6월</option></select></div>
-      <div class="field"><label>계산방식</label><select id="calcMethod"><option value="rule" selected>공고 예시 방식 (시작월 제외)</option><option value="exact">정확한 달력 개월수</option></select></div>
-      <div class="field"><label>사업 기간</label><select id="duration" onchange="s0()" disabled><option value="2" selected>2년 (고정)</option></select></div>
+    <div class="g4" style="gap:12px;margin-bottom:12px">
+      <div class="field"><label>시작연도</label>
+        <select id="startYear" onchange="s0()">
+          <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option>
+        </select>
+      </div>
+      <div class="field"><label>시작월</label>
+        <select id="startMonth" onchange="s0()">
+          ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}"${m===4?' selected':''}>${m}월</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>총 사업 기간 (개월)</label>
+        <select id="totalMonths" onchange="s0()">
+          ${Array.from({length:36},(_,i)=>i+1).map(m=>`<option value="${m}"${m===24?' selected':''}>${m}개월${m%12===0?' ('+m/12+'년)':''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>계산방식</label>
+        <select id="calcMethod" onchange="s0()">
+          <option value="rule" selected>공고 예시 방식 (시작월 제외)</option>
+          <option value="exact">정확한 달력 개월수</option>
+        </select>
+      </div>
     </div>
+    <div id="periodBreakdown" style="margin-bottom:8px"></div>
     <p class="note" id="pNote" style="margin-top:10px"></p>
   </div>
   <div class="nav-row"><span></span><button class="btn btn-primary" onclick="go(1)">다음 → 인건비 산정</button></div>
@@ -206,7 +223,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 <div class="panel" id="p1">
   <div class="slabel">기존인력 참여 인건비</div>
   <div class="card">
-    <div class="phdr"><span>성명/직위</span><span>연봉(천원)</span><span>1차 참여율</span><span>2차 참여율</span><span>구분</span><span>현금/현물</span><span>비고</span><span></span></div>
+    <div id="pListHdr"></div>
     <div id="pList"></div>
     <button class="add-btn" onclick="addP()">+ 기존인력 추가</button>
     <p class="note">※ 현물 → 협약일 현재 재직 기존인력만 / 1인 현물·현금 동시불가 / 인건비 계상률 100% 초과 불가<br>※ 지원인력(회계·행정 등) 인건비는 참여인력 인건비의 20% 이내<br>※ 산정식: 연봉 ÷ 12 × 참여개월 × 참여율 (천원 미만 절사)</p>
@@ -220,7 +237,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
   <div class="alert warn">🏢 <b>고용창출 의무:</b> 본 사업은 신규 일자리 창출 계획을 사업계획서에 반드시 제안해야 합니다. 아래에 신규 채용 예정 인력을 입력해주세요.</div>
   <div class="slabel">신규 채용 인력 (공고일 이후 채용)</div>
   <div class="card">
-    <div class="phdr"><span>성명/직위(예정)</span><span>예정연봉(천원)</span><span>1차 참여율</span><span>2차 참여율</span><span>참여기간</span><span>현금/현물</span><span>PC구매</span><span></span></div>
+    <div id="nhListHdr"></div>
     <div id="newHireList"></div>
     <button class="add-btn" onclick="addNH()">+ 신규인력 추가</button>
     <p class="note">※ 신규인력 → 현금만 가능 (협약일 이후 채용이므로 현물 불가)<br>※ 신규인력 퇴직금·퇴직급여충당금 편성 불가<br>※ PC/노트북 구매 조건: <b>참여율 50% 이상 + 참여기간 6개월 이상</b>인 신규인력만 1대 가능<br>※ 범용 PC·노트북·프린터 등은 신규인력에 한해서만 구매 가능 (기존인력 불가)</p>
@@ -468,23 +485,23 @@ function auditFee(t,con){
 // ── 상태 ──────────────────────────────────────────────────────────────────
 let S={
   orgType:'sme', consortium:1, gov1:580000, gov2:580000, govTotal:1160000,
-  dur:2, sy:2026, sm:4, method:'rule',
+  totalMonths:24, sy:2026, sm:4, method:'rule', govByYear:{},
   people:[
-    {name:'홍길동/대표이사·CTO',sal:120000,r1:20,r2:20,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'김AI/AI팀장(부장)',sal:95000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'이개발/AI수석연구원(차장)',sal:88000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'박모델/AI연구원(과장)',sal:75000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'최데이터/데이터엔지니어(대리)',sal:66000,r1:50,r2:50,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'강백엔드/백엔드개발자(과장)',sal:72000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'윤프론트/프론트엔드개발자(대리)',sal:62000,r1:30,r2:30,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'한MLOps/MLOps엔지니어(대리)',sal:68000,r1:40,r2:40,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'정PM/프로젝트매니저(차장)',sal:85000,r1:25,r2:25,type:'existing',ct:'현물',note:'기존인력'},
-    {name:'신기획/사업기획·행정(대리)',sal:55000,r1:20,r2:20,type:'existing',ct:'현금',note:'기존인력'},
+    {name:'홍길동/대표이사·CTO',sal:120000,rates:[20,20],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'김AI/AI팀장(부장)',sal:95000,rates:[40,40],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'이개발/AI수석연구원(차장)',sal:88000,rates:[50,50],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'박모델/AI연구원(과장)',sal:75000,rates:[50,50],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'최데이터/데이터엔지니어(대리)',sal:66000,rates:[50,50],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'강백엔드/백엔드개발자(과장)',sal:72000,rates:[40,40],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'윤프론트/프론트엔드개발자(대리)',sal:62000,rates:[30,30],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'한MLOps/MLOps엔지니어(대리)',sal:68000,rates:[40,40],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'정PM/프로젝트매니저(차장)',sal:85000,rates:[25,25],type:'existing',ct:'현물',note:'기존인력'},
+    {name:'신기획/사업기획·행정(대리)',sal:55000,rates:[20,20],type:'existing',ct:'현금',note:'기존인력'},
   ],
   newHires:[
-    {name:'신규1/AI연구원(LLM파인튜닝)',sal:60000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
-    {name:'신규2/데이터엔지니어',sal:55000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
-    {name:'신규3/백엔드개발자',sal:52000,r1:60,r2:60,ct:'현금',note:'신규인력',m1:6,m2:12,pc:true},
+    {name:'신규1/AI연구원(LLM파인튜닝)',sal:60000,rates:[80,80],months:[6,12],ct:'현금',note:'신규인력',pc:true},
+    {name:'신규2/데이터엔지니어',sal:55000,rates:[80,80],months:[6,12],ct:'현금',note:'신규인력',pc:true},
+    {name:'신규3/백엔드개발자',sal:52000,rates:[60,60],months:[6,12],ct:'현금',note:'신규인력',pc:true},
   ],
   labor:{years:[],totCash:0,totGoods:0,totTotal:0},
   nhLabor:{totCash:0,totTotal:0,pcCost:0,items:[]},
@@ -498,18 +515,78 @@ let S={
 
 const fmt=n=>Math.floor(n).toLocaleString();
 const N=v=>Math.floor(v);
-function getM(yi){const sm=+document.getElementById('startMonth').value,me=document.getElementById('calcMethod').value;if(yi===0){const t=13-sm;return me==='rule'?t-1:t;}return 12;}
-function getTM(){return getM(0)+getM(1);}
+// ── 기간 계산 (N개월 자유 설정) ────────────────────────────────────────────
+function getTotalMonths(){ return +document.getElementById('totalMonths').value||24; }
+function getStartMonth(){ return +document.getElementById('startMonth').value||1; }
+function getStartYear(){ return +document.getElementById('startYear').value||2026; }
+function getCalcMethod(){ return document.getElementById('calcMethod').value||'rule'; }
+
+// 차수별 연도 배열 반환 [{yi, yr, startM, endM, months}]
+function getYearPeriods(){
+  const sm=getStartMonth(), sy=getStartYear(), tm=getTotalMonths(), me=getCalcMethod();
+  const periods=[];
+  let remaining=tm, curYear=sy, curMonth=sm;
+  let yi=0;
+  while(remaining>0){
+    // 해당 연도에서 쓸 수 있는 달 수
+    let monthsInYear = 13 - curMonth; // curMonth~12월
+    if(me==='rule' && yi===0) monthsInYear = 13 - curMonth - 1; // 시작월 제외
+    monthsInYear = Math.min(monthsInYear, remaining);
+    if(monthsInYear<=0){ curYear++; curMonth=1; continue; }
+    periods.push({yi, yr:curYear, startM:curMonth, months:monthsInYear});
+    remaining -= monthsInYear;
+    curYear++; curMonth=1; yi++;
+  }
+  return periods;
+}
+
+function getNumYears(){ return getYearPeriods().length; }
+function getM(yi){ const p=getYearPeriods(); return p[yi]?p[yi].months:0; }
+function getTM(){ return getTotalMonths(); }
 
 // ── ① 예산 설정 ──────────────────────────────────────────────────────────
+function renderGovInputs(){
+  const periods=getYearPeriods();
+  const cont=document.getElementById('govInputs');
+  if(!cont)return;
+  // 기존 값 유지
+  if(!S.govByYear) S.govByYear={};
+  const cols=Math.min(periods.length,4);
+  cont.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  cont.innerHTML=periods.map((p,i)=>{
+    if(!(p.yr in S.govByYear)) S.govByYear[p.yr]=Math.round((S.govTotal||1160000)/periods.length);
+    return `<div class="field"><label>${p.yr}년 정부지원금 (천원)</label>
+      <input type="number" value="${S.govByYear[p.yr]}" step="1000" style="color:var(--blue)"
+        oninput="S.govByYear[${p.yr}]=+this.value;syncGovFromYears()"></div>`;
+  }).join('');
+}
+
+function syncGovFromYears(){
+  S.govTotal=Object.values(S.govByYear).reduce((a,v)=>a+(+v||0),0);
+  const el=document.getElementById('govTotal');
+  if(el) el.value=S.govTotal;
+  s0();
+}
+
+function syncGovTotal(){
+  S.govTotal=+document.getElementById('govTotal').value||0;
+  // 연도별 균등 분배
+  const periods=getYearPeriods();
+  if(!S.govByYear)S.govByYear={};
+  const perYear=Math.round(S.govTotal/periods.length);
+  periods.forEach((p,i)=>{ S.govByYear[p.yr]= i===periods.length-1? S.govTotal-perYear*(periods.length-1) : perYear; });
+  renderGovInputs();
+  s0();
+}
+
 function s0(){
   S.orgType=document.getElementById('orgType').value;
   S.consortium=+document.getElementById('consortium').value;
-  S.gov1=+document.getElementById('gov1').value||0;
-  S.gov2=+document.getElementById('gov2').value||0;
   S.govTotal=+document.getElementById('govTotal').value||0;
-  S.sy=+document.getElementById('startYear').value;
-  S.sm=+document.getElementById('startMonth').value;
+  S.sy=getStartYear();
+  S.sm=getStartMonth();
+  S.totalMonths=getTotalMonths();
+  renderGovInputs();
   const ratio=ORG_RATIO[S.orgType];
   // 최소 총 사업비 역산 (정부지원금이 govMax 비율이라면)
   const minTotal=Math.ceil(S.govTotal/ratio.govMax);
@@ -529,46 +606,65 @@ function s0(){
       </div>
     </div>`;
   document.getElementById('s0cards').innerHTML='';
-  let note=`사업기간: `;
-  for(let i=0;i<2;i++) note+=`${S.sy+i}년 ${i===0?S.sm+'월':'1월'}~12월 → 적용 ${getM(i)}개월  `;
-  note+=`\n정산수수료: ${fmt(auditFee(S.govTotal,S.consortium))}천원 (사업비 규모 기준${S.consortium>0?', 참여기관 가산 포함':''})`;
+  const periods=getYearPeriods();
+  const breakdown=document.getElementById('periodBreakdown');
+  if(breakdown){
+    breakdown.innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
+      +periods.map(p=>'<div class="sc" style="flex:1;min-width:80px"><div class="lbl">'+p.yr+'년 ('+( p.yi+1)+'차)</div><div class="val" style="font-size:14px">'+p.months+'개월</div><div class="sub">'+p.startM+'월부터</div></div>').join('')
+      +'<div class="sc blue" style="flex:1;min-width:80px"><div class="lbl">총 사업 기간</div><div class="val" style="font-size:14px">'+getTotalMonths()+'개월</div><div class="sub">'+periods.length+'개 연도</div></div></div>';
+  }
+  let note='사업기간: '+periods.map(p=>p.yr+'년 '+p.startM+'월~ ('+p.months+'개월)').join(' / ');
+  note+='\n정산수수료: '+fmt(auditFee(S.govTotal,S.consortium))+'천원 (사업비 규모 기준'+(S.consortium>0?', 참여기관 가산 포함':'')+')'; 
   document.getElementById('pNote').textContent=note;
   document.getElementById('s0note').textContent=`※ 총 사업비는 정부지원금 ÷ ${(ratio.govMax*100).toFixed(0)}% 이상이어야 합니다. 민간부담금은 현물(인건비+직접입력) + 현금으로 구성됩니다. 현물은 [② 현물 입력] 탭에서 관리하세요.`;
 }
 
 // ── ② 인건비 ────────────────────────────────────────────────────────────
 function renderPList(){
-  document.getElementById('pList').innerHTML=S.people.map((p,i)=>`
-    <div class="prow">
+  const periods=getYearPeriods();
+  const nY=periods.length;
+  const rCols='1.4fr 85px '+periods.map(()=>'52px').join(' ')+' 56px 50px 22px';
+  // 헤더
+  const hdr=document.getElementById('pListHdr');
+  if(hdr) hdr.innerHTML=`<div class="phdr" style="grid-template-columns:${rCols}">
+    <span>성명/직위</span><span>연봉(천원)</span>
+    ${periods.map(p=>`<span>${p.yr}년<br><span style="font-size:9px">${p.months}개월</span></span>`).join('')}
+    <span>현금/현물</span><span>비고</span><span></span></div>`;
+  document.getElementById('pList').innerHTML=S.people.map((p,i)=>{
+    // 기존 r1/r2 → rates 배열로 마이그레이션
+    if(!p.rates) p.rates=periods.map((_,yi)=>yi===0?(p.r1||30):(p.r2||30));
+    while(p.rates.length<nY) p.rates.push(p.rates[p.rates.length-1]||30);
+    return `<div class="prow" style="grid-template-columns:${rCols}">
       <input type="text" value="${p.name}" placeholder="성명/직위" oninput="S.people[${i}].name=this.value">
       <input type="number" value="${p.sal}" step="1000" oninput="S.people[${i}].sal=+this.value">
-      <input type="number" value="${p.r1}" min="0" max="100" oninput="S.people[${i}].r1=+this.value">
-      <input type="number" value="${p.r2}" min="0" max="100" oninput="S.people[${i}].r2=+this.value">
-      <select disabled><option>기존</option></select>
+      ${periods.map((_,yi)=>`<input type="number" value="${p.rates[yi]||0}" min="0" max="100" style="text-align:center" oninput="S.people[${i}].rates[${yi}]=+this.value">`).join('')}
       <select onchange="S.people[${i}].ct=this.value">
         <option value="현물" ${p.ct==='현물'?'selected':''}>현물</option>
         <option value="현금" ${p.ct==='현금'?'selected':''}>현금</option>
       </select>
-      <input type="text" value="${p.note}" oninput="S.people[${i}].note=this.value">
+      <input type="text" value="${p.note||''}" oninput="S.people[${i}].note=this.value">
       <button class="del-btn" onclick="S.people.splice(${i},1);renderPList()">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
-function addP(){S.people.push({name:'',sal:60000,r1:30,r2:30,type:'existing',ct:'현물',note:'기존인력'});renderPList();}
+function addP(){S.people.push({name:'',sal:60000,rates:Array(getNumYears()).fill(30),type:'existing',ct:'현물',note:'기존인력'});renderPList();}
 
 function calcLabor(){
+  const periods=getYearPeriods();
   let years=[],tc=0,tg=0;
-  for(let yi=0;yi<2;yi++){
-    const m=getM(yi),yr=S.sy+yi;
+  periods.forEach((period,yi)=>{
+    const m=period.months, yr=period.yr;
     const rows=S.people.map(p=>{
-      const r=yi===0?p.r1:p.r2;
+      const rates=p.rates||(p.r1!==undefined?periods.map((_,i)=>i===0?p.r1:p.r2):[]);
+      const r=rates[yi]||0;
       if(!r)return{p,r:0,m,amt:0};
       return{p,r,m,amt:Math.floor(p.sal/12*m*r/100)};
     });
     const yc=rows.filter(x=>x.p.ct==='현금').reduce((a,x)=>a+x.amt,0);
     const yg=rows.filter(x=>x.p.ct==='현물').reduce((a,x)=>a+x.amt,0);
-    years.push({yr,m,rows,totCash:yc,totGoods:yg,tot:yc+yg});
+    years.push({yr,m,yi,rows,totCash:yc,totGoods:yg,tot:yc+yg});
     tc+=yc;tg+=yg;
-  }
+  });
   S.labor={years,totCash:tc,totGoods:tg,totTotal:tc+tg};
   let h=`<div class="card"><div class="card-title">기존인력 인건비 산정 결과</div>
     <div class="g3" style="margin-bottom:10px">
@@ -577,7 +673,7 @@ function calcLabor(){
       <div class="sc blue"><div class="lbl">합계</div><div class="val">${fmt(tc+tg)}</div><div class="sub">천원</div></div>
     </div>`;
   years.forEach(y=>{
-    h+=`<div style="font-size:12px;font-weight:600;color:var(--text2);margin:8px 0 4px">${y.yr}년 (${y.m}개월)</div>
+    h+=`<div style="font-size:12px;font-weight:600;color:var(--text2);margin:8px 0 4px">${y.yr}년 ${y.yi+1}차 (${y.m}개월)</div>
     <table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>산출식</th><th>인건비</th><th>현금/현물</th></tr></thead><tbody>`;
     y.rows.forEach(({p,r,m,amt})=>{
       if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="4" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}
@@ -590,29 +686,37 @@ function calcLabor(){
 
 // ── ③ 신규인력 고용창출 ──────────────────────────────────────────────────
 function renderNHList(){
+  const periods=getYearPeriods();
+  const rCols='1.4fr 85px '+periods.map(()=>'50px 46px').join(' ')+' 56px 22px';
+  const hdr=document.getElementById('nhListHdr');
+  if(hdr) hdr.innerHTML=`<div class="phdr" style="grid-template-columns:${rCols}">
+    <span>성명/직위(예정)</span><span>예정연봉</span>
+    ${periods.map(p=>`<span>${p.yr}년<br>참여율%</span><span>참여월수</span>`).join('')}
+    <span>PC구매</span><span></span></div>`;
+
   document.getElementById('newHireList').innerHTML=S.newHires.map((p,i)=>{
-    // PC 구매 가능 여부 체크
-    const m1=+S.newHires[i].m1||0,m2=+S.newHires[i].m2||0;
-    const r1=+S.newHires[i].r1||0,r2=+S.newHires[i].r2||0;
-    const pcOk1=r1>=50&&m1>=6,pcOk2=r2>=50&&m2>=6;
-    const pcPossible=pcOk1||pcOk2;
-    return `<div class="prow" style="grid-template-columns:1.4fr 85px 58px 58px 56px 56px 56px 22px">
+    if(!p.rates) p.rates=periods.map((_,yi)=>yi===0?(p.r1||80):(p.r2||80));
+    if(!p.months) p.months=periods.map((_,yi)=>yi===0?(p.m1||getM(0)):getM(yi));
+    while(p.rates.length<periods.length){p.rates.push(p.rates[p.rates.length-1]||0);p.months.push(getM(p.months.length));}
+    // PC 조건: 어느 차수에서든 참여율50% 이상 + 6개월 이상
+    const pcPossible=periods.some((_,yi)=>(p.rates[yi]||0)>=50&&(p.months[yi]||0)>=6);
+    return `<div class="prow" style="grid-template-columns:${rCols}">
       <input type="text" value="${p.name}" placeholder="신규인력/직위(예정)" oninput="S.newHires[${i}].name=this.value">
       <input type="number" value="${p.sal}" step="1000" oninput="S.newHires[${i}].sal=+this.value">
-      <input type="number" value="${p.r1}" min="0" max="100" placeholder="1차%" oninput="S.newHires[${i}].r1=+this.value;renderNHList()">
-      <input type="number" value="${p.r2}" min="0" max="100" placeholder="2차%" oninput="S.newHires[${i}].r2=+this.value;renderNHList()">
-      <input type="number" value="${p.m1||getM(0)}" min="0" max="12" placeholder="1차 월수" title="1차년도 실제 참여 개월수" oninput="S.newHires[${i}].m1=+this.value;renderNHList()">
-      <select disabled><option>현금</option></select>
+      ${periods.map((_,yi)=>`
+        <input type="number" value="${p.rates[yi]||0}" min="0" max="100" style="text-align:center" oninput="S.newHires[${i}].rates[${yi}]=+this.value;renderNHList()">
+        <input type="number" value="${p.months[yi]||getM(yi)}" min="0" max="${getM(yi)}" style="text-align:center" oninput="S.newHires[${i}].months[${yi}]=+this.value;renderNHList()">`).join('')}
       <select onchange="S.newHires[${i}].pc=this.value==='Y'" ${!pcPossible?'disabled title="참여율50%+6개월 조건 미충족"':''}>
-        <option value="N" ${!p.pc?'selected':''}>PC구매 안함</option>
-        <option value="Y" ${p.pc?'selected':''} ${!pcPossible?'disabled':''}>PC구매 (${pcPossible?'가능':'조건미충족'})</option>
+        <option value="N" ${!p.pc?'selected':''}>안함</option>
+        <option value="Y" ${p.pc?'selected':''} ${!pcPossible?'disabled':''}>구매(${pcPossible?'가능':'불가'})</option>
       </select>
       <button class="del-btn" onclick="S.newHires.splice(${i},1);renderNHList()">×</button>
     </div>`;
   }).join('');
 }
 function addNH(){
-  S.newHires.push({name:'',sal:50000,r1:80,r2:80,ct:'현금',note:'신규인력',m1:getM(0),m2:12,pc:true});
+  const periods=getYearPeriods();
+  S.newHires.push({name:'',sal:50000,rates:periods.map(()=>80),months:periods.map((_,yi)=>getM(yi)),ct:'현금',note:'신규인력',pc:true});
   renderNHList();
 }
 
@@ -620,23 +724,22 @@ const PC_COST=1500; // 노트북 1대 기준 단가 (천원)
 
 function calcNewHire(){
   const tm=getTM();
+  const periods=getYearPeriods();
   let totCash=0,pcCost=0,items=[];
-  const years=[{yi:0,m:getM(0),yr:S.sy},{yi:1,m:getM(1),yr:S.sy+1}];
   S.newHires.forEach((p,idx)=>{
+    const rates=p.rates||periods.map((_,yi)=>yi===0?(p.r1||0):(p.r2||0));
+    const months=p.months||periods.map((_,yi)=>getM(yi));
     let totalAmt=0;
-    years.forEach(({yi,m,yr})=>{
-      const r=yi===0?p.r1:p.r2;
-      if(!r)return;
-      const actualM=yi===0?(p.m1||m):m;
-      const amt=Math.floor(p.sal/12*actualM*r/100);
-      totalAmt+=amt;
+    periods.forEach((_,yi)=>{
+      const r=rates[yi]||0, m=months[yi]||0;
+      if(!r||!m)return;
+      totalAmt+=Math.floor(p.sal/12*m*r/100);
     });
     totCash+=totalAmt;
-    // PC 구매 조건 체크
-    const pcOk=(p.r1>=50&&(p.m1||getM(0))>=6)||(p.r2>=50&&getM(1)>=6);
+    const pcOk=periods.some((_,yi)=>(rates[yi]||0)>=50&&(months[yi]||0)>=6);
     let pcAmt=0;
     if(p.pc&&pcOk){pcAmt=PC_COST;pcCost+=pcAmt;}
-    items.push({...p,totalAmt,pcAmt,pcOk});
+    items.push({...p,rates,months,totalAmt,pcAmt,pcOk});
   });
   S.nhLabor={totCash,totTotal:totCash,pcCost,items};
 
@@ -648,10 +751,14 @@ function calcNewHire(){
       <div class="sc"><div class="lbl">PC/노트북 구매비</div><div class="val">${fmt(pcCost)}</div><div class="sub">천원</div></div>
       <div class="sc blue"><div class="lbl">신규인력 소계</div><div class="val">${fmt(totCash+pcCost)}</div><div class="sub">천원</div></div>
     </div>
-    <table class="ftbl"><thead><tr><th>성명/직위</th><th>예정연봉</th><th>1차 참여율</th><th>2차 참여율</th><th>인건비</th><th>PC구매</th><th>비고</th></tr></thead><tbody>`;
+    <table class="ftbl"><thead><tr><th>성명/직위</th><th>예정연봉</th>
+      ${periods.map(p=>`<th>${p.yr}년 참여율</th><th>참여월수</th>`).join('')}
+      <th>인건비</th><th>PC구매</th><th>비고</th></tr></thead><tbody>`;
   items.forEach(it=>{
     const pcNote=it.pc&&it.pcOk?`노트북 1대 (${PC_COST}천원)`:(!it.pcOk&&it.pc?'<span class="tag warn">조건미충족</span>':'-');
-    h+=`<tr><td style="font-weight:600">${it.name||'미입력'}</td><td>${fmt(it.sal)}</td><td>${it.r1}%</td><td>${it.r2}%</td><td><b>${fmt(it.totalAmt)}</b></td><td>${pcNote}</td><td><span class="tag newjob">신규채용</span> <span class="tag cash">현금</span></td></tr>`;
+    h+=`<tr><td style="font-weight:600">${it.name||'미입력'}</td><td>${fmt(it.sal)}</td>
+      ${periods.map((_,yi)=>`<td>${it.rates[yi]||0}%</td><td>${it.months[yi]||0}개월</td>`).join('')}
+      <td><b>${fmt(it.totalAmt)}</b></td><td>${pcNote}</td><td><span class="tag newjob">신규채용</span> <span class="tag cash">현금</span></td></tr>`;
   });
   h+=`</tbody></table></div>`;
   document.getElementById('newHireResult').innerHTML=h;
@@ -666,7 +773,7 @@ function buildAllocPanel(){
   const laborTotal=S.labor.totTotal+S.nhLabor.totTotal;
   const pcTotal=S.nhLabor.pcCost;
   // 정부지원금 중 인건비 현금 + 신규인건비 + 나머지 배분
-  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const laborCash=S.labor.totCash+(S.nhLabor?S.nhLabor.totCash:0);
   const rem=govT-laborCash-pcTotal; // 비목 배분 가능 예산 (출연금 기준)
   S.remBudget=rem;S.pcTotal=pcTotal;S.laborTotal=laborTotal;S.minTotal=minTotal;
   document.getElementById('p3sum').innerHTML=`
@@ -713,7 +820,8 @@ function greedyFit(items,hint,tm){
     const a=auditFee(S.govTotal,S.consortium);
     result.push({item:it,qty:1,rawAmt:a,finalAmt:a,on:true,auto:true,absorb:false});running+=a;
   });
-  const pool=[...items.filter(x=>!x.sp)].sort((a,b)=>(b.pm?b.u*tm:b.u*b.qty)-(a.pm?a.u*tm:a.u*a.qty));
+  const nYrs=getYearPeriods().length;
+  const pool=[...items.filter(x=>!x.sp&&(x.yr==='both'||!x.yr||(x.yr==='1차'&&nYrs>=1)||(x.yr==='2차'&&nYrs>=2)))].sort((a,b)=>(b.pm?b.u*tm:b.u*b.qty)-(a.pm?a.u*tm:a.u*a.qty));
   for(const it of pool){
     if(running>=hint)break;
     const base1=it.pm?it.u*tm:it.u;if(!base1)continue;
@@ -734,7 +842,7 @@ function recalcFinal(){
   // 목표: 정부지원금 = 인건비현금 + PC비 + 비목들(출연금 파트)
   // 비목 전체 합산 → 총사업비에 맞추기 위해 최대 비목에 차액 흡수
   const govT=S.govTotal;
-  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const laborCash=S.labor.totCash+(S.nhLabor?S.nhLabor.totCash:0);
   const pcTotal=S.nhLabor.pcCost;
   const targetBimok=govT-laborCash-pcTotal;
 
@@ -788,7 +896,8 @@ function renderComposed(){
     [...rows.filter(r=>r.on),...rows.filter(r=>!r.on)].forEach(row=>{
       const it=row.item,isF=it.pm||it.sp,isA=row.absorb;
       const needPlan=it.needPlan&&row.on;
-      const yrLabel=it.yr&&it.yr!=='both'?`<span class="tag warn">${it.yr}차년도</span>`:'';
+      const nYrPeriods=getYearPeriods().length;
+      const yrLabel=it.yr&&it.yr!=='both'?(it.yr==='1차'?'<span class="tag warn">1차년도만</span>':(nYrPeriods>=2?'<span class="tag warn">2차년도~</span>':'<span class="tag warn">해당없음</span>')):'';
       h+=`<div class="item-row${row.on?(isA?' absorb':' on'):''}${it.yr==='2차'?'':''}" onclick="toggleItem('${bm}','${it.id}')">
         <span style="font-size:13px;color:${row.on?(isA?'var(--amber)':'var(--blue)'):'var(--text3)'}">${row.on?'●':'○'}</span>
         <div>
@@ -819,7 +928,7 @@ function buildValidation(){
   const govT=S.govTotal;
   const ratio=ORG_RATIO[S.orgType];
   const laborGoods=S.labor.totGoods;
-  const laborCash=S.labor.totCash+S.nhLabor.totCash;
+  const laborCash=S.labor.totCash+(S.nhLabor?S.nhLabor.totCash:0);
   const pcT=S.nhLabor.pcCost;
   let bmT={};BIMOKS.forEach(bm=>{bmT[bm]=(S.composed[bm]||[]).filter(r=>r.on).reduce((a,r)=>a+r.finalAmt,0);});
   const bmSum=Object.values(bmT).reduce((a,v)=>a+v,0);
@@ -849,7 +958,7 @@ function buildValidation(){
     {title:'사업추진비 한도 (2% 이내)',val:`${(bizRatio*100).toFixed(1)}% (${fmt(bizAmt)}천원)`,limit:`총사업비의 2% 이내`,ok:bizRatio<=0.02,sub:`외부기관 참석자 없는 회의비 불인정`},
     {title:'정산위탁수수료 산정',val:`${fmt(auditAmt)}천원 편성`,limit:`${fmt(auditRequired)}천원 이상 필요`,ok:auditAmt>=auditRequired,sub:`사업비 규모 기준${S.consortium>0?', 참여기관 가산':''}`},
     {title:'신규인력 고용창출',val:`${S.newHires.length}명 채용 계획`,limit:'사업계획서 필수 기재',ok:S.newHires.length>0,sub:'공고일 이후 채용, 사업계획서에 구체적 계획 필요'},
-    {title:'신규인력 PC 구매 조건',val:S.nhLabor.items.filter(x=>x.pc&&x.pcOk).length+'명 구매 가능',limit:'참여율50%↑ + 참여기간6개월↑',ok:S.nhLabor.items.filter(x=>x.pc&&!x.pcOk).length===0,sub:'조건 미충족 신규인력의 PC 구매 불가'},
+    {title:'신규인력 PC 구매 조건',val:(S.nhLabor.items||[]).filter(x=>x.pc&&x.pcOk).length+'명 구매 가능',limit:'참여율50%↑ + 참여기간6개월↑',ok:(S.nhLabor.items||[]).filter(x=>x.pc&&!x.pcOk).length===0,sub:'조건 미충족 신규인력의 PC 구매 불가'},
     {title:'유형자산 활용계획서',val:(S.composed['유형자산']||[]).filter(r=>r.on&&r.item.needPlan).length+'건 필요',limit:'3,000만원 이상 자산 필수',ok:true,sub:'GPU 서버 등 고가 장비는 활용계획서 별도 제출'},
   ];
 
@@ -881,7 +990,8 @@ function buildValidation(){
 
 // ── ⑦ 최종 출력 ──────────────────────────────────────────────────────────
 function buildFinal(){
-  const govT=S.govTotal,lr=S.labor,d=2,sy=S.sy,tm=getTM();
+  const govT=S.govTotal,lr=S.labor,sy=S.sy,tm=getTM();
+  const periods=getYearPeriods();const d=periods.length;
   const ratio=ORG_RATIO[S.orgType];
   const ps=calcPrivStructure();
   const inputGoods=getPrivGoodsTotal();
@@ -939,14 +1049,17 @@ function buildFinal(){
 
   // 인건비 세부 (기존+신규 통합)
   h+=`<div class="card"><div class="card-title">인건비 세부 (단위: 천원)</div>`;
-  if(d>=2){h+=`<div class="tab-row">`;for(let i=0;i<d;i++)h+=`<button class="tab${i===0?' on':''}" onclick="swT(${i},${d},this.closest('.card'))">${sy+i}년</button>`;h+=`</div>`;}
+  h+=`<div class="tab-row">${periods.map((p,i)=>`<button class="tab${i===0?' on':''}" onclick="swT(${i},this.closest('.card'))">${p.yr}년 (${p.yi+1}차)</button>`).join('')}</div>`;
   lr.years.forEach((y,yi)=>{
-    const nhM=yi===0?S.newHires.map(p=>({p,m:p.m1||getM(0),r:p.r1})):S.newHires.map(p=>({p,m:getM(1),r:p.r2}));
+    const nhM=S.newHires.map(p=>{
+      const rates=p.rates||[];const months=p.months||[];
+      return {p, m:months[yi]||0, r:rates[yi]||0};
+    });
     h+=`<div class="ytab" style="display:${yi===0?'block':'none'}">
     <table class="ftbl"><thead><tr><th>성명/직위</th><th>구분</th><th>연봉</th><th>참여율</th><th>참여월</th><th>산출식</th><th>인건비</th><th>현금/현물</th><th>비고</th></tr></thead><tbody>`;
     y.rows.forEach(({p,r,m,amt})=>{
       if(!r){h+=`<tr><td>${p.name}</td><td></td><td colspan="6" style="text-align:center;color:var(--text3)">미참여</td><td></td></tr>`;return;}
-      h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ex">기존</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td>${m}개월</td><td style="font-size:10px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag goods">현물</span></td><td style="font-size:11px;color:var(--text3)">${p.note}</td></tr>`;
+      h+=`<tr><td style="font-weight:600">${p.name}</td><td><span class="tag ex">기존</span></td><td>${fmt(p.sal)}</td><td>${r}%</td><td>${m}개월</td><td style="font-size:10px;color:var(--text2)">${fmt(p.sal)}÷12×${m}×${r}%</td><td><b>${fmt(amt)}</b></td><td><span class="tag ${p.ct==='현금'?'cash':'goods'}">${p.ct}</span></td><td style="font-size:11px;color:var(--text3)">${p.note||''}</td></tr>`;
     });
     nhM.forEach(({p,m,r})=>{
       if(!r||!m)return;
@@ -959,9 +1072,10 @@ function buildFinal(){
 
   // 신규인력 고용창출 계획서
   h+=`<div class="card new-hire-card"><div class="card-title" style="color:var(--purple)">🆕 신규인력 고용창출 계획서</div>
-  <table class="ftbl"><thead><tr><th>성명/직위(예정)</th><th>예정연봉</th><th>채용 목적·업무</th><th>1차 참여율</th><th>2차 참여율</th><th>인건비(천원)</th><th>PC/노트북</th></tr></thead><tbody>`;
+  <table class="ftbl"><thead><tr><th>성명/직위(예정)</th><th>예정연봉</th><th>채용 목적·업무</th><th>차수별 참여율</th><th>인건비(천원)</th><th>PC/노트북</th></tr></thead><tbody>`;
   S.nhLabor.items.forEach(it=>{
-    h+=`<tr><td style="font-weight:600;color:var(--purple)">${it.name||'미입력'} <span class="tag newjob">신규채용</span></td><td>${fmt(it.sal)}</td><td style="font-size:11px;color:var(--text2)">AI 에이전트 서비스 개발·운영</td><td>${it.r1}%</td><td>${it.r2}%</td><td><b>${fmt(it.totalAmt)}</b></td><td>${it.pc&&it.pcOk?`노트북 1대 (${PC_COST}천원)`:'-'}</td></tr>`;
+    const rateStr=(it.rates||[]).map((r,yi)=>periods[yi]?periods[yi].yr+'년:'+r+'%':'').join(' / ');
+    h+=`<tr><td style="font-weight:600;color:var(--purple)">${it.name||'미입력'} <span class="tag newjob">신규채용</span></td><td>${fmt(it.sal)}</td><td style="font-size:11px;color:var(--text2)">AI 에이전트 서비스 개발·운영</td><td style="font-size:11px">${rateStr}</td><td><b>${fmt(it.totalAmt)}</b></td><td>${it.pc&&it.pcOk?`노트북 1대 (${PC_COST}천원)`:'-'}</td></tr>`;
   });
   h+=`<tr class="brow"><td colspan="5">소계</td><td><b>${fmt(S.nhLabor.totCash)}</b></td><td>${fmt(pcT)}천원</td></tr></tbody></table></div>`;
 
@@ -1020,10 +1134,9 @@ function downloadExcel(){
   // 시트2: 인건비 세부
   const s2=[['인건비 세부 산출내역 (단위: 천원)'],[]];
   lr.years.forEach((y,yi)=>{
-    s2.push([`${y.yr}년 (${y.m}개월 적용)`]);s2.push(['성명/직위','구분','연봉','참여율(%)','참여월','산출식','인건비','현금/현물','비고']);
-    y.rows.forEach(({p,r,m,amt})=>{if(!r){s2.push([p.name,'기존','','','','미참여','','현물','기존인력']);return;}s2.push([p.name,'기존',N(p.sal),r,m,`${p.sal}÷12×${m}×${r}%`,N(amt),'현물',p.note]);});
-    // 신규인력
-    S.newHires.forEach(p=>{const r=yi===0?p.r1:p.r2;const m=yi===0?(p.m1||getM(0)):getM(1);if(!r||!m)return;const amt=Math.floor(p.sal/12*m*r/100);s2.push([p.name,'신규(고용창출)',N(p.sal),r,m,`${p.sal}÷12×${m}×${r}%`,N(amt),'현금','신규채용·고용창출']);});
+    s2.push([y.yr+'년 '+( yi+1)+'차 ('+y.m+'개월 적용)']);s2.push(['성명/직위','구분','연봉','참여율(%)','참여월','산출식','인건비','현금/현물','비고']);
+    y.rows.forEach(({p,r,m,amt})=>{if(!r){s2.push([p.name,'기존','','','','미참여','','현물','기존인력']);return;}s2.push([p.name,'기존',N(p.sal),r,m,p.sal+'÷12×'+m+'×'+r+'%',N(amt),p.ct||'현물',p.note||'']);});
+    S.newHires.forEach(p=>{const rates=p.rates||[];const months=p.months||[];const r=rates[yi]||0;const m=months[yi]||0;if(!r||!m)return;const amt=Math.floor(p.sal/12*m*r/100);s2.push([p.name,'신규(고용창출)',N(p.sal),r,m,p.sal+'÷12×'+m+'×'+r+'%',N(amt),'현금','신규채용·고용창출']);});
     s2.push(['합계','','','','','',N(y.tot),'','']);s2.push([]);
   });
   s2.push(['전체 인건비 합계','','','','','',N(laborTotal),'','']);
@@ -1039,21 +1152,32 @@ function downloadExcel(){
 
   // 시트4: 신규인력 고용창출 계획서
   const s4=[['신규인력 고용창출 계획서 (AI 에이전트 서비스 개발 사업)'],[]];
-  s4.push(['성명/직위(예정)','예정연봉(천원)','담당업무','1차참여율','2차참여율','1차년도 인건비','2차년도 인건비','PC/노트북','비고']);
+  const s4hdr=['성명/직위(예정)','예정연봉(천원)','담당업무'];
+  const xlPeriods=getYearPeriods();
+  xlPeriods.forEach(p=>{s4hdr.push(p.yr+'년 참여율');s4hdr.push(p.yr+'년 인건비');});
+  s4hdr.push('PC/노트북','비고');
+  s4.push(s4hdr);
   S.newHires.forEach((p,i)=>{
-    const amt1=Math.floor(p.sal/12*(p.m1||getM(0))*p.r1/100);const amt2=Math.floor(p.sal/12*getM(1)*p.r2/100);
-    const pcOk=(p.r1>=50&&(p.m1||getM(0))>=6)||(p.r2>=50&&getM(1)>=6);
-    s4.push([p.name||`신규인력${i+1}`,N(p.sal),'AI 에이전트 개발·운영',`${p.r1}%`,`${p.r2}%`,N(amt1),N(amt2),p.pc&&pcOk?`노트북 1대 (${PC_COST}천원)`:'해당없음','공고일 이후 채용']);
+    const rates=p.rates||[];const months=p.months||[];
+    const row=[p.name||('신규인력'+(i+1)),N(p.sal),'AI 에이전트 개발·운영'];
+    xlPeriods.forEach((_,yi)=>{
+      const r=rates[yi]||0,m=months[yi]||0;
+      row.push(r+'%');row.push(N(Math.floor(p.sal/12*m*r/100)));
+    });
+    const pcOk=xlPeriods.some((_,yi)=>(rates[yi]||0)>=50&&(months[yi]||0)>=6);
+    row.push(p.pc&&pcOk?'노트북 1대 ('+PC_COST+'천원)':'해당없음','공고일 이후 채용');
+    s4.push(row);
   });
-  s4.push(['합계','','','','',N(S.nhLabor.totCash),'',N(pcT),'']);
-  const ws4=XLSX.utils.aoa_to_sheet(s4);ws4['!cols']=[{wch:18},{wch:14},{wch:22},{wch:10},{wch:10},{wch:16},{wch:16},{wch:18},{wch:18}];
+  s4.push(['합계','',''].concat(xlPeriods.flatMap(()=>['',''])).concat([N(S.nhLabor.pcCost),'']));
+  const ws4=XLSX.utils.aoa_to_sheet(s4);
+  ws4['!cols']=[{wch:18},{wch:14},{wch:22},...xlPeriods.flatMap(()=>[{wch:10},{wch:16}]),{wch:18},{wch:18}];
   XLSX.utils.book_append_sheet(wb,ws4,'④고용창출계획');
 
   const today=new Date();const ds=`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
   XLSX.writeFile(wb,`기금사업비_예산산출_AI에이전트_${ds}.xlsx`);
 }
 
-function swT(idx,d,c){c.querySelectorAll('.ytab').forEach((el,i)=>el.style.display=i===idx?'block':'none');c.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',i===idx));}
+function swT(idx,c){c.querySelectorAll('.ytab').forEach((el,i)=>el.style.display=i===idx?'block':'none');c.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',i===idx));}
 
 function go(n){
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
@@ -1137,9 +1261,9 @@ function renderMgmt(bm){
       <input type="number" value="${it.min}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].min=+this.value" title="최소 수량">
       <input type="number" value="${it.max}" min="1" step="1" style="font-size:11px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text2);width:100%;text-align:center" oninput="DB['${bm}'][${idx}].max=+this.value" title="최대 수량">
       <select style="font-size:11px;padding:2px 3px;border:1px solid var(--border2);border-radius:4px;background:#fff;color:var(--text);width:100%" onchange="DB['${bm}'][${idx}].yr=this.value" title="적용 차수">
-        <option value="both" ${it.yr==='both'?'selected':''}>1·2차</option>
+        <option value="both" ${it.yr==='both'?'selected':''}>전체</option>
         <option value="1차" ${it.yr==='1차'?'selected':''}>1차만</option>
-        <option value="2차" ${it.yr==='2차'?'selected':''}>2차만</option>
+        <option value="2차" ${it.yr==='2차'?'selected':''}>2차이후</option>
       </select>
       <button class="del-btn" onclick="deleteMgmtItem('${bm}',${idx})" title="삭제" style="background:var(--red-bg);color:var(--red);border-color:var(--red-bd)">×</button>
     </div>`;
@@ -1357,7 +1481,7 @@ async function saveDBRemote(silent=false){
     const res = await fetch(JSONBIN_URL, {
       method:'PUT',
       headers: JSONBIN_HEADERS,
-      body: JSON.stringify({db: DB, privGoodsItems: S.privGoodsItems||[], savedAt: new Date().toISOString()})
+      body: JSON.stringify({db: DB, privGoodsItems: S.privGoodsItems||[], totalMonths: S.totalMonths||24, govByYear: S.govByYear||{}, savedAt: new Date().toISOString()})
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     if(!silent){
@@ -1389,6 +1513,8 @@ async function loadDBRemote(showMsg=true){
         if(remote[bm]) DB[bm] = remote[bm];
       });
       if(json.record.privGoodsItems) S.privGoodsItems = json.record.privGoodsItems;
+      if(json.record.totalMonths){ S.totalMonths=json.record.totalMonths; const el=document.getElementById('totalMonths'); if(el) el.value=S.totalMonths; }
+      if(json.record.govByYear){ S.govByYear=json.record.govByYear; }
       renderMgmt(mgmtBimok);
       renderMgmtTabs();
       renderPrivGoods();
